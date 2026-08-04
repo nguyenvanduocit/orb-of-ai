@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- This checkout has no Git metadata. Do not stage, commit, reset, merge, or invent commit receipts; use the exact SHA-256 baseline and per-task before/after hashes in this plan.
+- The checkout is Git-managed as of 2026-08-04. Per-task commits replace the hand-rolled manifest receipts this plan was written around: `git status --porcelain` and `git diff --stat <baseline>..HEAD` give the same before/after accounting, including symlink targets, with nothing bespoke to keep correct. The exact SHA-256 baseline below still gates the start.
 - Strict RED first: Task 2 adds and runs every StageBox contract test before Tasks 3-7 change production or generated artifacts. Preserve the complete RED command/output.
 - Authored scope is exactly `src/discord-hero/catalog/source-refresh.ts`, `src/discord-hero/catalog/compiler.ts`, `src/discord-hero/catalog/loader.ts`, `src/discord-hero/catalog/catalog.test.ts`, and `scripts/discordhero-catalog.ts`.
 - Generated scope is exactly `assets/discordhero/catalog.json`, `preferences/taskbarhero/raw-data/current-version`, the `preferences/taskbarhero/raw-data/current` symlink, and one new immutable `preferences/taskbarhero/raw-data/versions/91740273a6399950f5d972fa082f9abf97544a6b0716dda06b71acce66f770a4/`.
@@ -535,12 +535,21 @@ JSON lexer/parser that consumes the complete JSON grammar, decodes string
 escapes before key comparison, maintains a fresh `Set<string>` for every
 object, and throws a plain namespaced `Error` on a repeated decoded key before
 constructing the object. It must reject trailing tokens and malformed UTF-16;
-do not use `JSON.parse` before duplicate detection. Require item own keys
-exactly:
+do not use `JSON.parse` before duplicate detection. Require these nine item own
+keys, and accept `deleted` as the only permitted tenth:
 
 ```ts
 ["affix", "gear", "grade", "icon", "id", "level", "name", "slug", "type"];
+// optional tenth, boolean: "deleted"
 ```
+
+41 of the 59 pages carry the nine keys and 18 carry `deleted: true`. Those 18
+are exactly the 18 arithmetic discriminators below: a retired box keeps its own
+item id while pointing at a surviving box's `DropKey`, which is why `DropKey`
+can never be computed from `itemId`. They belong in the aggregate — the pinned
+artifact hash `5abd1eb6...668ce9` is only reproducible with all 59 present and
+`deleted` inside the hashed item record. Requiring exactly nine keys would
+reject 18 pages and make that hash unreachable.
 
 Require detail own keys exactly:
 
