@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { decodeDiscordHeroAlchemyOutcome } from "./alchemy";
 import { decodeDiscordHeroAllocateAttributePointOutcome } from "./allocate-attribute-point";
 import { decodeDiscordHeroEquipGearOutcome } from "./equip-gear";
+import { decodeDiscordHeroSelectStarterOutcome } from "./select-starter";
 import { decodeDiscordHeroUnequipGearOutcome } from "./unequip-gear";
 import { decodeDiscordHeroUnlockContainerSlotOutcome } from "./unlock-container-slot";
 import { decodeDiscordHeroUnlockCubeRecipeOutcome } from "./unlock-cube-recipe";
@@ -16,6 +17,17 @@ interface DecoderCase {
 }
 
 const decoderCases: readonly DecoderCase[] = [
+  {
+    name: "select starter",
+    decode: decodeDiscordHeroSelectStarterOutcome,
+    valid: [
+      { kind: "selected", starterHeroKey: 101 },
+      { kind: "selected", starterHeroKey: 201 },
+      { kind: "selected", starterHeroKey: 301 },
+    ],
+    numericField: "starterHeroKey",
+    wrongShape: { kind: "selected", starterHeroKey: 401 },
+  },
   {
     name: "unlock container slot",
     decode: decodeDiscordHeroUnlockContainerSlotOutcome,
