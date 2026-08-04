@@ -1089,3 +1089,426 @@ describe("immutable loaded catalog", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Stage Box drop-key mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Re-derives the StageBox mapping straight from the pinned Markdown. It shares
+ * no code with the production extractor on purpose: a test that calls the
+ * implementation it is checking proves only that the implementation agrees
+ * with itself.
+ */
+type StageBoxOracleMapping = {
+  boxKind: "NORMAL" | "STAGE_BOSS" | "ACT_BOSS";
+  itemId: number;
+  dropKey: number;
+  sourcePath: string;
+  itemRecordSha256: string;
+  detailRecordSha256: string;
+};
+
+type StageBoxOracle = {
+  inventory: { itemId: number; sourcePath: string; slug: string }[];
+  mappings: StageBoxOracleMapping[];
+  inventoryAggregateSha256: string;
+  mappingAggregateSha256: string;
+  artifactBytes: string;
+  artifactSha256: string;
+  uniqueDropRows: Record<string, unknown>[];
+  perPageDropRowCount: number;
+};
+
+const STAGE_BOX_INVENTORY_ROW =
+  /^\| \[([^\]]+)\]\((items\/[^)]+\.md)\) \| ([^|]+?) \| ([1-9]\d*) \|$/gm;
+
+const STAGE_BOX_KIND_PREFIXES = [
+  ["Normal Monster Box", "NORMAL"],
+  ["Stage Boss Box", "STAGE_BOSS"],
+  ["Act Boss Box", "ACT_BOSS"],
+] as const;
+
+function readFencedAppendix(page: string, dataset: string): string {
+  const heading = "### `" + dataset + "`";
+  const headingAt = page.indexOf(heading);
+  if (headingAt === -1) throw new Error(`missing ${dataset} appendix`);
+  if (page.indexOf(heading, headingAt + 1) !== -1) {
+    throw new Error(`duplicate ${dataset} appendix`);
+  }
+  const fenceAt = page.indexOf("```json", headingAt);
+  if (fenceAt === -1) throw new Error(`unfenced ${dataset} appendix`);
+  const start = page.indexOf("\n", fenceAt) + 1;
+  const end = page.indexOf("```", start);
+  if (end === -1) throw new Error(`unterminated ${dataset} appendix`);
+  return page.slice(start, end).replace(/\n$/, "");
+}
+
+let stageBoxOraclePromise: Promise<StageBoxOracle> | undefined;
+
+async function readStageBoxOracle(): Promise<StageBoxOracle> {
+  stageBoxOraclePromise ??= (async () => {
+    const prefs = join(PROJECT_ROOT, "preferences/taskbarhero");
+    const inventorySource = await readFile(
+      join(prefs, "stage-boxes.md"),
+      "utf8",
+    );
+    const inventory = [
+      ...inventorySource.matchAll(STAGE_BOX_INVENTORY_ROW),
+    ].map((match) => ({
+      itemId: Number(match[4]),
+      sourcePath: match[2]!,
+      slug: match[3]!.trim(),
+    }));
+
+    const mappings: StageBoxOracleMapping[] = [];
+    for (const row of inventory) {
+      const page = await readFile(join(prefs, row.sourcePath), "utf8");
+      const itemText = readFencedAppendix(page, "/data/items.json");
+      const detailText = readFencedAppendix(page, "/data/items_detail.json");
+      const item = JSON.parse(itemText) as Record<string, unknown> & {
+        id: number;
+        slug: string;
+        type: string;
+        name: Record<string, string>;
+      };
+      const detail = JSON.parse(detailText) as { dropKey: number };
+
+      // 41 pages carry the nine base keys; the 18 retired boxes add `deleted`.
+      const baseKeys = [
+        "affix",
+        "gear",
+        "grade",
+        "icon",
+        "id",
+        "level",
+        "name",
+        "slug",
+        "type",
+      ];
+      const itemKeys = Object.keys(item);
+      expect(itemKeys.filter((key) => key !== "deleted")).toEqual(baseKeys);
+      expect(Object.keys(detail)).toEqual([
+        "desc",
+        "dropKey",
+        "stats",
+        "synthType",
+        "uniqueMod",
+      ]);
+      expect(item.type).toBe("STAGEBOX");
+      expect(item.id).toBe(row.itemId);
+      expect(item.slug).toBe(row.slug);
+      expect(Number.isSafeInteger(detail.dropKey)).toBe(true);
+      expect(detail.dropKey).toBeGreaterThan(0);
+
+      const name = item.name["en-US"]!;
+      const kind = STAGE_BOX_KIND_PREFIXES.find(([prefix]) =>
+        name.startsWith(prefix),
+      );
+      if (kind === undefined) throw new Error(`unclassified box ${name}`);
+
+      mappings.push({
+        boxKind: kind[1],
+        itemId: row.itemId,
+        dropKey: detail.dropKey,
+        sourcePath: row.sourcePath,
+        itemRecordSha256: digest(JSON.stringify(item)),
+        detailRecordSha256: digest(JSON.stringify(detail)),
+      });
+    }
+
+    const inventoryAggregateSha256 = digest(JSON.stringify(inventory));
+    const sorted = mappings.toSorted(
+      (left, right) => left.itemId - right.itemId,
+    );
+    const artifactBytes = `${JSON.stringify(
+      {
+        format: "discordhero-stage-box-drop-keys/v1",
+        inventoryAggregateSha256,
+        mappings: sorted,
+      },
+      null,
+      2,
+    )}\n`;
+
+    const rawRoot = await currentRawSource();
+    const drops = JSON.parse(
+      await readFile(join(rawRoot, "datasets/drops.json"), "utf8"),
+    ) as Record<string, unknown>[];
+    const dropKeys = new Set(mappings.map((row) => row.dropKey));
+
+    return {
+      inventory,
+      mappings,
+      inventoryAggregateSha256,
+      mappingAggregateSha256: digest(JSON.stringify(sorted)),
+      artifactBytes,
+      artifactSha256: digest(artifactBytes),
+      uniqueDropRows: drops.filter((row) =>
+        dropKeys.has(row.DropKey as number),
+      ),
+      perPageDropRowCount: mappings.reduce(
+        (total, mapping) =>
+          total + drops.filter((row) => row.DropKey === mapping.dropKey).length,
+        0,
+      ),
+    };
+  })();
+  return stageBoxOraclePromise;
+}
+
+function countBy<T>(rows: readonly T[], key: (row: T) => unknown) {
+  return rows.reduce<Record<string, number>>((totals, row) => {
+    const bucket = String(key(row));
+    totals[bucket] = (totals[bucket] ?? 0) + 1;
+    return totals;
+  }, {});
+}
+
+describe("Stage Box drop-key source facts", () => {
+  test("re-derives all 59 mappings and kills arithmetic DropKey derivation", async () => {
+    const oracle = await readStageBoxOracle();
+
+    expect(oracle.inventory).toHaveLength(59);
+    expect(oracle.mappings).toHaveLength(59);
+    expect(new Set(oracle.mappings.map((row) => row.itemId)).size).toBe(59);
+    expect(new Set(oracle.mappings.map((row) => row.sourcePath)).size).toBe(59);
+
+    // The falsifier for computing DropKey from itemId: 18 retired boxes keep
+    // their own id while pointing at a surviving box's table.
+    expect(
+      oracle.mappings
+        .filter((row) => row.dropKey !== row.itemId * 10 + 1)
+        .map(({ itemId, dropKey }) => [itemId, dropKey]),
+    ).toEqual([
+      [910251, 9102011],
+      [910351, 9103011],
+      [910451, 9104011],
+      [910551, 9105011],
+      [910601, 9105011],
+      [910701, 9106511],
+      [910751, 9106511],
+      [910851, 9108011],
+      [910901, 9108011],
+      [920251, 9202011],
+      [920351, 9203011],
+      [920451, 9204011],
+      [920551, 9205011],
+      [920601, 9205011],
+      [920701, 9206511],
+      [920751, 9206511],
+      [920851, 9208011],
+      [920901, 9208011],
+    ]);
+  });
+
+  test("pins the exact aggregate bytes and 59/41/19/29/11 census", async () => {
+    const oracle = await readStageBoxOracle();
+
+    expect(new Set(oracle.mappings.map((row) => row.dropKey)).size).toBe(41);
+    expect(countBy(oracle.mappings, (row) => row.boxKind)).toEqual({
+      NORMAL: 19,
+      STAGE_BOSS: 29,
+      ACT_BOSS: 11,
+    });
+    expect(oracle.inventoryAggregateSha256).toBe(
+      "cb107ebc086f776e2d792bbc24be52940cd9dccbdb47bdfcb62ba54dfb8523a8",
+    );
+    expect(oracle.mappingAggregateSha256).toBe(
+      "3210ffc48bc73dad29f057e6fd45458d9d9cf2f2076be2c6be996e9c7b0d5845",
+    );
+    expect(Buffer.byteLength(oracle.artifactBytes)).toBe(19_897);
+    expect(Buffer.byteLength(oracle.artifactBytes)).toBeLessThanOrEqual(
+      64 * 1024,
+    );
+    expect(oracle.artifactSha256).toBe(
+      "5abd1eb6538d2ba59052845c2be376c67a79bf47393de2f6b8ceca17fb668ce9",
+    );
+  });
+
+  test("joins 2,428 unique rows and 3,975 per-page rows with exact reward counts", async () => {
+    const oracle = await readStageBoxOracle();
+    const rawRoot = await currentRawSource();
+    const itemGroups = JSON.parse(
+      await readFile(join(rawRoot, "datasets/item_groups.json"), "utf8"),
+    ) as { ItemGroupKey: number }[];
+
+    expect(oracle.uniqueDropRows).toHaveLength(2_428);
+    expect(oracle.perPageDropRowCount).toBe(3_975);
+    expect(countBy(oracle.uniqueDropRows, (row) => row.DropType)).toEqual({
+      EachDropOneWeight_DLCVariant: 2_418,
+      EachDropOneWeight: 10,
+    });
+    expect(countBy(oracle.uniqueDropRows, (row) => row.REWARDTYPE)).toEqual({
+      ITEMGROUP: 2_282,
+      ITEM: 146,
+    });
+    expect(
+      countBy(oracle.uniqueDropRows, (row) => row.HeroKeyCondition),
+    ).toEqual({ null: 956, 0: 496, 501: 488, 601: 488 });
+
+    const weights = oracle.uniqueDropRows.map((row) => row.Weight as number);
+    expect({
+      positive: weights.filter((weight) => weight > 0).length,
+      zero: weights.filter((weight) => weight === 0).length,
+      negative: weights.filter((weight) => weight < 0).length,
+    }).toEqual({ positive: 2_203, zero: 225, negative: 0 });
+
+    const groupKeys = new Set(
+      oracle.uniqueDropRows
+        .filter((row) => row.REWARDTYPE === "ITEMGROUP")
+        .map((row) => row.RewardKey as number),
+    );
+    expect(groupKeys.size).toBe(561);
+    expect(
+      itemGroups.filter((row) => groupKeys.has(row.ItemGroupKey)),
+    ).toHaveLength(1_171);
+    expect(
+      new Set(
+        oracle.uniqueDropRows
+          .filter((row) => row.REWARDTYPE === "ITEM")
+          .map((row) => row.RewardKey as number),
+      ).size,
+    ).toBe(23);
+  });
+
+  test("pins all 12 Act Boss stage costs and four Soulstone identities", async () => {
+    const rawRoot = await currentRawSource();
+    const stages = JSON.parse(
+      await readFile(join(rawRoot, "datasets/stages.json"), "utf8"),
+    ) as Record<string, unknown>[];
+    const actBossStages = stages.filter((row) => row.SoulstoneItemKey !== null);
+
+    expect(actBossStages).toHaveLength(12);
+    expect(new Set(actBossStages.map((row) => row.BossDropItemKey)).size).toBe(
+      11,
+    );
+    expect(countBy(actBossStages, (row) => row.STAGEDIFFICULITY)).toEqual({
+      NORMAL: 3,
+      NIGHTMARE: 3,
+      HELL: 3,
+      TORMENT: 3,
+    });
+
+    const soulstoneByDifficulty: Record<string, number> = {
+      NORMAL: 190_001,
+      NIGHTMARE: 190_002,
+      HELL: 190_003,
+      TORMENT: 190_004,
+    };
+    for (const row of actBossStages) {
+      expect(row.SoulstoneAmount).toBe(1);
+      expect(row.SoulstoneItemKey).toBe(
+        soulstoneByDifficulty[row.STAGEDIFFICULITY as string],
+      );
+    }
+  });
+});
+
+describe("Stage Box drop-key production contract", () => {
+  test("records the aggregate in the source lock beside monster details", async () => {
+    const oracle = await readStageBoxOracle();
+    const projectRoot = await createProjectCopy();
+    const staged = await createCanonicalStage(projectRoot);
+    await writeFile(
+      join(staged, "stage-box-drop-keys.json"),
+      oracle.artifactBytes,
+      "utf8",
+    );
+
+    const sourceLock = (await createDiscordHeroSourceLock(
+      projectRoot,
+      staged,
+    )) as unknown as {
+      stageBoxDropKeys?: {
+        path: string;
+        count: number;
+        distinctDropKeyCount: number;
+        inventoryAggregateSha256: string;
+        mappingAggregateSha256: string;
+        sha256: string;
+      };
+    };
+
+    expect(sourceLock.stageBoxDropKeys).toEqual({
+      path: "stage-box-drop-keys.json",
+      count: 59,
+      distinctDropKeyCount: 41,
+      inventoryAggregateSha256: oracle.inventoryAggregateSha256,
+      mappingAggregateSha256: oracle.mappingAggregateSha256,
+      sha256: oracle.artifactSha256,
+    });
+    // The lock must serialize the new field last, after monsterDetails.
+    const serialized = serializeSourceLock(sourceLock as never);
+    expect(serialized.indexOf("stageBoxDropKeys")).toBeGreaterThan(
+      serialized.indexOf("monsterDetails"),
+    );
+  });
+
+  test("compiles the mapping and its provenance into the catalog semantic", async () => {
+    const oracle = await readStageBoxOracle();
+    const catalog = (await loadDiscordHeroCatalog()) as unknown as {
+      semantic: {
+        stageBoxDropKeys?: {
+          provenance: {
+            sourceCount: number;
+            distinctDropKeyCount: number;
+            inventoryAggregateSha256: string;
+            sourceAggregateSha256: string;
+            sourceArtifactSha256: string;
+          };
+          mappings: StageBoxOracleMapping[];
+        };
+      };
+    };
+
+    const semantic = catalog.semantic.stageBoxDropKeys;
+    expect(semantic).toBeDefined();
+    expect(semantic!.provenance).toEqual({
+      sourceCount: 59,
+      distinctDropKeyCount: 41,
+      inventoryAggregateSha256: oracle.inventoryAggregateSha256,
+      sourceAggregateSha256: oracle.mappingAggregateSha256,
+      sourceArtifactSha256: oracle.artifactSha256,
+    });
+    expect(semantic!.mappings).toEqual(
+      oracle.mappings.toSorted((left, right) => left.itemId - right.itemId),
+    );
+  });
+
+  test("returns a detached deeply frozen mapping or a plain Error", async () => {
+    const oracle = await readStageBoxOracle();
+    const loader = (await import("./loader")) as unknown as {
+      getStageBoxDropKeyMapping?: (
+        catalog: unknown,
+        itemId: number,
+      ) => StageBoxOracleMapping;
+    };
+    expect(typeof loader.getStageBoxDropKeyMapping).toBe("function");
+
+    const catalog = await loadDiscordHeroCatalog();
+    const first = oracle.mappings[0]!;
+    const mapping = loader.getStageBoxDropKeyMapping!(catalog, first.itemId);
+    expect(mapping).toEqual(first);
+    expect(Object.isFrozen(mapping)).toBe(true);
+
+    // Same input, same value, and never the caller's to mutate.
+    expect(loader.getStageBoxDropKeyMapping!(catalog, first.itemId)).toEqual(
+      mapping,
+    );
+    expect(() => {
+      (mapping as { dropKey: number }).dropKey = 1;
+    }).toThrow(TypeError);
+
+    for (const forged of [0, -1, 1.5, Number.NaN, 999_999_999]) {
+      let thrown: unknown;
+      try {
+        loader.getStageBoxDropKeyMapping!(catalog, forged);
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBeInstanceOf(Error);
+      expect(Object.getPrototypeOf(thrown)).toBe(Error.prototype);
+    }
+  });
+});
