@@ -102,7 +102,7 @@ import {
   discordHeroStages,
   encodeDiscordHeroStagePage,
 } from "../discord-hero/ui/world";
-import { openDiscordHeroWorkspace } from "../discord-hero/use-cases/open-workspace";
+import { selectDiscordHeroStarter } from "../discord-hero/use-cases/select-starter";
 import { execute, handleButton, handleSelect } from "./discordhero";
 
 let runtime: DiscordHeroRuntime;
@@ -131,7 +131,7 @@ beforeAll(async () => {
   const indexes = buildCatalogIndexes(catalog);
   const snapshot = {
     revision: 13,
-    state: createFreshPlayerStateFromCatalog(indexes),
+    state: createFreshPlayerStateFromCatalog(indexes, 101),
   };
   runtime = {
     catalog,
@@ -382,7 +382,7 @@ function customIdForAction(
 }
 
 function stateWithPaginatedRollFixtures() {
-  const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+  const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
   const itemKeys = {
     SWORD: 300001,
     BOW: 310001,
@@ -473,7 +473,7 @@ describe("DiscordHero Home command handler", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       state.heroes[0]!.level = 10;
       state.heroes[0]!.xp = 7;
       repository.transactPlayer({
@@ -1008,7 +1008,7 @@ describe("DiscordHero Hero command handlers", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       repository.transactPlayer({
         scope: "test.hero-base-combat-handler",
         interactionId: "create-hero-base-combat-player",
@@ -1158,7 +1158,7 @@ describe("DiscordHero Hero command handlers", () => {
   test("binds Attribute tabs and detail to owner, revision, Hero, page, and exact target without transactions", async () => {
     const snapshot = {
       revision: 13,
-      state: createFreshPlayerStateFromCatalog(runtime.indexes),
+      state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
     };
     let transactionCalls = 0;
     let runtimeCalls = 0;
@@ -1293,7 +1293,7 @@ describe("DiscordHero Attribute allocation command handler", () => {
         nowMs: 1,
         mutate: () => ({
           kind: "commit",
-          state: createFreshPlayerStateFromCatalog(runtime.indexes),
+          state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
           outcome: { kind: "created" },
         }),
       });
@@ -1375,7 +1375,7 @@ describe("DiscordHero Attribute allocation command handler", () => {
   test("rejects stale, forged, cross-Hero, unowned, and foreign controls before mutation", async () => {
     const snapshot = {
       revision: 9,
-      state: createFreshPlayerStateFromCatalog(runtime.indexes),
+      state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
     };
     let transactionCalls = 0;
     let runtimeCalls = 0;
@@ -1479,7 +1479,7 @@ describe("DiscordHero Cube browser command handlers", () => {
   test("binds main and sub-recipe browsing to owner, revision, page, and source group without transactions", async () => {
     const snapshot = {
       revision: 13,
-      state: createFreshPlayerStateFromCatalog(runtime.indexes),
+      state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
     };
     let transactionCalls = 0;
     let runtimeCalls = 0;
@@ -1645,7 +1645,7 @@ describe("DiscordHero Cube browser command handlers", () => {
           nowMs: 1,
           mutate: () => ({
             kind: "commit",
-            state: createFreshPlayerStateFromCatalog(runtime.indexes),
+            state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
             outcome: { kind: "seeded" },
           }),
         });
@@ -1718,7 +1718,7 @@ describe("DiscordHero Rune command handlers", () => {
   test("pages and inspects exact Skills read-only while rejecting stale, cross-page, and foreign controls", async () => {
     const snapshot = {
       revision: 13,
-      state: createFreshPlayerStateFromCatalog(runtime.indexes),
+      state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
     };
     let transactionCalls = 0;
     let runtimeCalls = 0;
@@ -1882,9 +1882,10 @@ describe("DiscordHero Rune command handlers", () => {
     });
     try {
       expect(
-        openDiscordHeroWorkspace(repository, runtime.indexes, {
+        selectDiscordHeroStarter(repository, runtime.indexes, {
           userId: "123",
           interactionId: "create-rune-gate-player",
+          starterHeroKey: 101,
           nowMs: 1,
         }).revision,
       ).toBe(1);
@@ -1901,9 +1902,12 @@ describe("DiscordHero Rune command handlers", () => {
           if (current === null) throw new Error("expected Rune player");
           const state = structuredClone(current);
           state.gold = 1_000;
+          // Rune 21 is owned so that Rune 22 is reachable; its
+          // MaxInventorySlot effect is the still-oracle-gated one under test.
           state.runes = [
             { key: 1, level: 1 },
             { key: 20, level: 1 },
+            { key: 21, level: 1 },
           ];
           return { kind: "commit", state, outcome: { kind: "seeded" } };
         },
@@ -1939,7 +1943,7 @@ describe("DiscordHero Rune command handlers", () => {
           revision: 2,
           value: encodeDiscordHeroRunePage(2),
         }),
-        ["21"],
+        ["22"],
         "123",
         "forge-unsupported-rune",
       );
@@ -1949,7 +1953,7 @@ describe("DiscordHero Rune command handlers", () => {
       expect(forged.replies).toHaveLength(0);
       expect(forged.updates).toHaveLength(1);
       expect(JSON.stringify(forged.updates[0])).toContain(
-        "UnlockArrangeSlotCount is oracle-gated",
+        "MaxInventorySlot is oracle-gated",
       );
       expect(transactionCalls).toBe(0);
       expect(repository.getPlayer("123")).toEqual(before);
@@ -1971,9 +1975,10 @@ describe("DiscordHero Rune command handlers", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      openDiscordHeroWorkspace(repository, runtime.indexes, {
+      selectDiscordHeroStarter(repository, runtime.indexes, {
         userId: "123",
         interactionId: "create-invalid-rune-player",
+        starterHeroKey: 101,
         nowMs: 1,
       });
       repository.transactPlayer({
@@ -2061,9 +2066,10 @@ describe("DiscordHero Rune command handlers", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      const opened = openDiscordHeroWorkspace(repository, runtime.indexes, {
+      const opened = selectDiscordHeroStarter(repository, runtime.indexes, {
         userId: "123",
         interactionId: "create-rune-handler-player",
+        starterHeroKey: 101,
         nowMs: 1,
       });
       expect(opened.revision).toBe(1);
@@ -2184,9 +2190,10 @@ describe("DiscordHero World command handlers", () => {
     });
     try {
       expect(
-        openDiscordHeroWorkspace(repository, runtime.indexes, {
+        selectDiscordHeroStarter(repository, runtime.indexes, {
           userId: "123",
           interactionId: "create-world-monster-stats-player",
+          starterHeroKey: 101,
           nowMs: 1,
         }).revision,
       ).toBe(1);
@@ -2335,7 +2342,7 @@ describe("DiscordHero Community Market command handlers", () => {
   test("keeps page and detail navigation read-only while rejecting all 945 cross-filter forgeries", async () => {
     const snapshot = {
       revision: 13,
-      state: createFreshPlayerStateFromCatalog(runtime.indexes),
+      state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
     };
     let runtimeCalls = 0;
     let transactionCalls = 0;
@@ -2493,7 +2500,7 @@ describe("DiscordHero Community Market command handlers", () => {
 
 describe("DiscordHero Collection command handlers", () => {
   test("pages and inspects Pets, Skins, and captured Achievements without transactions", async () => {
-    const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+    const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
     state.pets.unlocked = [1001];
     state.pets.active = 1001;
     const snapshot = { revision: 13, state };
@@ -2655,7 +2662,7 @@ describe("DiscordHero Alchemy command handler", () => {
         typeof createFreshPlayerStateFromCatalog
       >["containers"]["inventory"]["slots"][number]["asset"],
     ) => {
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       state.cube.unlockedRecipes.push(200001);
       state.cube.unlockedSubRecipes.push(200011);
       state.containers.inventory.slots.push({ index: 0, asset });
@@ -2692,7 +2699,7 @@ describe("DiscordHero Alchemy command handler", () => {
           quantity: 2,
         }),
       );
-      const locked = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const locked = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       locked.containers.inventory.slots.push({
         index: 0,
         asset: {
@@ -2703,7 +2710,7 @@ describe("DiscordHero Alchemy command handler", () => {
         },
       });
       seed("126", "seed-alchemy-command-126", locked);
-      const paginated = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const paginated = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       paginated.cube.unlockedRecipes.push(200001);
       paginated.cube.unlockedSubRecipes.push(200011);
       paginated.containers.inventory.unlockedSlots = 30;
@@ -2963,7 +2970,7 @@ describe("DiscordHero Alchemy command handler", () => {
 
 describe("DiscordHero shared Container command handlers", () => {
   test("binds Container pages and slots to owner, revision, kind, page, and unlocked identity without transactions", async () => {
-    const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+    const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
     state.containers.stash = {
       unlockedSlots: 131,
       slots: [
@@ -3128,7 +3135,7 @@ describe("DiscordHero shared Container command handlers", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       state.gold = 1_000;
       repository.transactPlayer({
         scope: "test.container-handler",
@@ -3196,6 +3203,7 @@ describe("DiscordHero shared Container command handlers", () => {
 
     const insufficientState = createFreshPlayerStateFromCatalog(
       runtime.indexes,
+      101,
     );
     insufficientState.gold = 0;
     const insufficientSnapshot = { revision: 7, state: insufficientState };
@@ -3241,7 +3249,7 @@ describe("DiscordHero shared Container command handlers", () => {
 
     const conflictSnapshot = {
       revision: 9,
-      state: createFreshPlayerStateFromCatalog(runtime.indexes),
+      state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
     };
     let conflictTransactions = 0;
     const conflictProvider = () =>
@@ -3300,7 +3308,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       state.containers.inventory.unlockedSlots = 60;
       for (let index = 25; index >= 0; index -= 1) {
         state.containers.inventory.slots.push({
@@ -3594,7 +3602,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       const rolledStats = [...runtime.indexes.tables.stat_mods.groups]
         .sort(([left], [right]) => left - right)
         .map(([statModKey, rows]) => ({
@@ -3843,7 +3851,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
   test("propagates a requested Collection renderer dependency failure", async () => {
     const snapshot = {
       revision: 5,
-      state: createFreshPlayerStateFromCatalog(runtime.indexes),
+      state: createFreshPlayerStateFromCatalog(runtime.indexes, 101),
     };
     const provider = () =>
       Promise.resolve({
@@ -3873,7 +3881,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
   });
 
   test("propagates a catalog lookup failure with an Item Effects-shaped message", async () => {
-    const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+    const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
     state.heroes[0]!.equipment.push({
       slot: "SWORD",
       asset: {
@@ -3933,7 +3941,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
   });
 
   test("acknowledges every enabled control emitted by corrupt Item Effects recovery without a leak or write", async () => {
-    const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+    const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
     state.heroes[0]!.equipment.push({
       slot: "SWORD",
       asset: {
@@ -4210,7 +4218,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
   });
 
   test("rejects cross-relation, off-page, duplicate, stale, malformed, and foreign Item Effects controls read-only", async () => {
-    const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+    const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
     state.heroes[0]!.equipment.push(
       {
         slot: "SWORD",
@@ -4553,7 +4561,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
           { statModKey: 100201, value: 45 },
         ],
       };
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       state.containers.inventory.slots.push({ index: 4, asset: selected });
       repository.transactPlayer({
         scope: "test.inventory-handler",
@@ -4674,7 +4682,7 @@ describe("DiscordHero Inventory and Equipment command handlers", () => {
       catalogDigest: runtime.catalog.provenance.compiledSha256,
     });
     try {
-      const state = createFreshPlayerStateFromCatalog(runtime.indexes);
+      const state = createFreshPlayerStateFromCatalog(runtime.indexes, 101);
       state.containers.inventory.unlockedSlots = 60;
       state.containers.inventory.slots.push(
         ...Array.from({ length: 26 }, (_, index) => ({

@@ -27,6 +27,7 @@ import {
 import {
   assertDiscordHeroComponentOwner,
   decodeDiscordHeroCustomId,
+  type DiscordHeroCustomId,
   type DiscordHeroView,
 } from "../discord-hero/ui/custom-id";
 import {
@@ -139,6 +140,12 @@ import {
   decodeDiscordHeroStagePage,
   discordHeroStages,
 } from "../discord-hero/ui/world";
+import { discordHeroStarterCandidates } from "../discord-hero/domain/party";
+import { decodeDiscordHeroPartySlot } from "../discord-hero/ui/party";
+import {
+  DISCORD_HERO_STARTER_VALUE,
+  renderDiscordHeroStarter,
+} from "../discord-hero/ui/starter";
 import {
   decodeDiscordHeroContainerUnlockTarget,
   renderDiscordHeroWorkspace,
@@ -157,7 +164,12 @@ import {
   equipDiscordHeroGear,
   type EquipGearOutcome,
 } from "../discord-hero/use-cases/equip-gear";
+import {
+  arrangeDiscordHeroParty,
+  type ArrangePartyOutcome,
+} from "../discord-hero/use-cases/arrange-party";
 import { openDiscordHeroWorkspace } from "../discord-hero/use-cases/open-workspace";
+import { selectDiscordHeroStarter } from "../discord-hero/use-cases/select-starter";
 import {
   unlockDiscordHeroCubeRecipe,
   type UnlockCubeRecipeOutcome,
@@ -211,17 +223,22 @@ export async function execute(
   }
   const opened = openDiscordHeroWorkspace(runtime.repository, runtime.indexes, {
     userId: interaction.user.id,
-    interactionId: interaction.id,
-    nowMs: now(),
   });
+  if (opened.status === "starter-required") {
+    await interaction.editReply(
+      boardPayload(
+        renderDiscordHeroStarter(interaction.user.id, opened.candidates),
+      ),
+    );
+    return;
+  }
   await interaction.editReply(
     boardPayload(
       renderDiscordHeroWorkspace(
         interaction.user.id,
         "home",
-        { revision: opened.revision, state: opened.state },
+        opened.snapshot,
         runtime.indexes,
-        opened.created ? "Fresh source-backed save created." : undefined,
       ),
     ),
   );
@@ -1721,6 +1738,138 @@ export async function handleButton(
   );
 }
 
+/**
+ * Turns the one pre-player control into a player. The chosen value is checked
+ * against the freshly recomputed candidate list, so a forged option never
+ * reaches the transaction.
+ */
+async function handleStarterSelection(
+  interaction: StringSelectMenuInteraction,
+  runtime: DiscordHeroRuntime,
+  now: () => number,
+): Promise<void> {
+  const candidates = discordHeroStarterCandidates(runtime.indexes);
+  const chosen = candidates.find(
+    (candidate) =>
+      interaction.values.length === 1 &&
+      String(candidate.heroKey) === interaction.values[0],
+  );
+  if (chosen === undefined) {
+    await interaction.update(
+      boardPayload(
+        renderDiscordHeroStarter(
+          interaction.user.id,
+          candidates,
+          "That starter is not on the menu. Pick one of the three.",
+        ),
+      ),
+    );
+    return;
+  }
+
+  const result = selectDiscordHeroStarter(runtime.repository, runtime.indexes, {
+    userId: interaction.user.id,
+    interactionId: interaction.id,
+    starterHeroKey: chosen.heroKey,
+    nowMs: now(),
+  });
+  const snapshot = runtime.repository.getPlayer(interaction.user.id);
+  if (snapshot === null) {
+    throw new Error("starter selection left no player state");
+  }
+  await interaction.update(
+    boardPayload(
+      renderDiscordHeroWorkspace(
+        interaction.user.id,
+        "home",
+        snapshot,
+        runtime.indexes,
+        `${chosen.name} deployed. All three heroes stay available in Formation.`,
+      ),
+    ),
+  );
+  void result;
+}
+
+function arrangementNotice(outcome: ArrangePartyOutcome): string {
+  switch (outcome.kind) {
+    case "arranged":
+      return outcome.transition === "swap"
+        ? `Swapped slots ${outcome.sourceSlot} and ${outcome.targetSlot}.`
+        : `Slot ${outcome.targetSlot} now holds hero #${outcome.selectedHeroKey}.`;
+    case "unchanged":
+      return "That hero already holds the slot.";
+    case "slot-locked":
+      return `Formation is ${outcome.capacity}/3; buy an arrangement Rune to open the next slot.`;
+    case "hero-not-owned":
+      return "You do not own that hero.";
+    case "stage-active":
+      return "Formation is locked while a stage is running.";
+    case "invalid-target":
+      return "That formation move is not available.";
+  }
+}
+
+/**
+ * Applies one formation move. A stale board is answered by re-rendering the
+ * current one instead of acting on the revision it was drawn from.
+ */
+async function handlePartyArrangement(
+  interaction: StringSelectMenuInteraction,
+  runtime: DiscordHeroRuntime,
+  now: () => number,
+  customId: DiscordHeroCustomId,
+): Promise<void> {
+  let notice: string;
+  try {
+    // The revision the control was drawn at is the one the move is made
+    // against, so a board the player is still looking at after someone else's
+    // change cannot act on state it never showed.
+    if (customId.revision === null) {
+      throw new Error("formation control carries no revision");
+    }
+    const targetSlot = decodeDiscordHeroPartySlot(customId.value ?? "");
+    const selectedHeroKey = Number(interaction.values[0]);
+    if (
+      interaction.values.length !== 1 ||
+      !Number.isSafeInteger(selectedHeroKey)
+    ) {
+      throw new Error("invalid captured formation selection");
+    }
+    const result = arrangeDiscordHeroParty(
+      runtime.repository,
+      runtime.indexes,
+      {
+        userId: interaction.user.id,
+        interactionId: interaction.id,
+        expectedRevision: customId.revision,
+        targetSlot,
+        selectedHeroKey,
+        nowMs: now(),
+      },
+    );
+    notice = arrangementNotice(result.outcome);
+  } catch {
+    notice = "That formation control is stale. Here is the current formation.";
+  }
+
+  const snapshot = runtime.repository.getPlayer(interaction.user.id);
+  if (snapshot === null) {
+    throw new Error("DiscordHero workspace owner has no player state");
+  }
+  await interaction.update(
+    boardPayload(
+      renderDiscordHeroWorkspace(
+        interaction.user.id,
+        "party",
+        snapshot,
+        runtime.indexes,
+        notice,
+      ),
+    ),
+  );
+}
+
 export async function handleSelect(
   interaction: StringSelectMenuInteraction,
   runtimeProvider: DiscordHeroRuntimeProvider = getDiscordHeroRuntime,
@@ -1738,11 +1887,28 @@ export async function handleSelect(
   }
 
   const runtime = await runtimeProvider();
+
+  // The starter menu is the one control offered before a player row exists,
+  // so it is answered before any snapshot is required.
+  if (
+    customId.view === "party" &&
+    customId.action === "select" &&
+    customId.value === DISCORD_HERO_STARTER_VALUE
+  ) {
+    await handleStarterSelection(interaction, runtime, now);
+    return;
+  }
+
   const snapshot = runtime.repository.getPlayer(interaction.user.id);
   if (snapshot === null) {
     throw new Error("DiscordHero workspace owner has no player state");
   }
   const stale = customId.revision !== snapshot.revision;
+
+  if (customId.view === "party" && customId.action === "select") {
+    await handlePartyArrangement(interaction, runtime, now, customId);
+    return;
+  }
 
   if (customId.view === "market" && customId.action === "select") {
     let location: {
