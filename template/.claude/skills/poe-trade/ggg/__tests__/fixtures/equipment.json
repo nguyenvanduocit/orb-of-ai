@@ -1,0 +1,286 @@
+{
+  "items": [
+    {
+      "verified": false,
+      "w": 1,
+      "h": 1,
+      "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQW11bGV0cy9Bc3Nhc3NpblVuaXF1ZSIsInciOjEsImgiOjEsInNjYWxlIjoxfV0/3616219d7d/AssassinUnique.png",
+      "league": "Standard",
+      "id": "6dc03456360fc5b18456ec8877f888ad6551539bfe7bfdc14d776ff1b1170725",
+      "name": "Badge of the Brotherhood",
+      "typeLine": "Turquoise Amulet",
+      "baseType": "Turquoise Amulet",
+      "rarity": "Unique",
+      "ilvl": 83,
+      "identified": true,
+      "requirements": [
+        {
+          "name": "Level",
+          "values": [
+            [
+              "60",
+              0
+            ]
+          ],
+          "displayMode": 0,
+          "type": 62
+        }
+      ],
+      "enchantMods": [
+        "Allocates Infused"
+      ],
+      "implicitMods": [
+        "+22 to Dexterity and Intelligence"
+      ],
+      "explicitMods": [
+        "Your Maximum Frenzy Charges is equal to your Maximum Power Charges",
+        "10% increased Cooldown Recovery Rate of Travel Skills per Frenzy Charge",
+        "7% increased Effect of Elusive on you per Power Charge",
+        "21% chance to lose a Frenzy Charge when you use a Travel Skill",
+        "23% chance to lose a Power Charge when you gain Elusive"
+      ],
+      "flavourText": [
+        "Greater than any blade, agility and intellect will be your weapons."
+      ],
+      "frameType": 3,
+      "x": 0,
+      "y": 0,
+      "inventoryId": "Amulet"
+    },
+    {
+      "verified": false,
+      "w": 2,
+      "h": 2,
+      "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy9HbG92ZXMvR2xvdmVzSW50MyIsInciOjIsImgiOjIsInNjYWxlIjoxLCJzZWFyaW5nIjp0cnVlLCJ0YW5nbGVkIjp0cnVlfV0/f12b1185ef/GlovesInt3.png",
+      "league": "Standard",
+      "id": "25e4af47714faa91ea3ecde29b4ff758c41b3f5755de066ff9d2706b36bc249c",
+      "searing": true,
+      "tangled": true,
+      "sockets": [
+        {
+          "group": 0,
+          "attr": "I",
+          "sColour": "B"
+        },
+        {
+          "group": 0,
+          "attr": "S",
+          "sColour": "R"
+        },
+        {
+          "group": 0,
+          "attr": "S",
+          "sColour": "R"
+        },
+        {
+          "group": 0,
+          "attr": "I",
+          "sColour": "B"
+        }
+      ],
+      "name": "Kraken Knuckle",
+      "typeLine": "Arcanist Gloves",
+      "baseType": "Arcanist Gloves",
+      "rarity": "Rare",
+      "ilvl": 74,
+      "identified": true,
+      "properties": [
+        {
+          "name": "Quality",
+          "values": [
+            [
+              "+20%",
+              1
+            ]
+          ],
+          "displayMode": 0,
+          "type": 6
+        },
+        {
+          "name": "Energy Shield",
+          "values": [
+            [
+              "62",
+              1
+            ]
+          ],
+          "displayMode": 0,
+          "type": 18
+        }
+      ],
+      "requirements": [
+        {
+          "name": "Level",
+          "values": [
+            [
+              "60",
+              0
+            ]
+          ],
+          "displayMode": 0,
+          "type": 62
+        },
+        {
+          "name": "Int",
+          "values": [
+            [
+              "95",
+              0
+            ]
+          ],
+          "displayMode": 1,
+          "type": 65
+        }
+      ],
+      "implicitMods": [
+        "15% of Physical Damage Converted to Cold Damage",
+        "4% increased Damage per Frenzy Charge"
+      ],
+      "explicitMods": [
+        "+22 to Intelligence",
+        "Adds 2 to 27 Lightning Damage to Attacks",
+        "+45 to maximum Life",
+        "Regenerate 13.8 Life per second",
+        "+48% to Cold Resistance",
+        "48% increased Damage with Hits against Chilled Enemies"
+      ],
+      "craftedMods": [
+        "25% of Physical Damage Converted to Cold Damage"
+      ],
+      "frameType": 2,
+      "x": 0,
+      "y": 0,
+      "inventoryId": "Gloves",
+      "socketedItems": []
+    },
+    {
+      "verified": false,
+      "w": 2,
+      "h": 3,
+      "icon": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvV2VhcG9ucy9PbmVIYW5kV2VhcG9ucy9PbmVIYW5kTWFjZXMvT25lSGFuZE1hY2UzYSIsInciOjIsImgiOjMsInNjYWxlIjoxfV0/3c0044c7be/OneHandMace3a.png",
+      "league": "Standard",
+      "id": "a62e88ee792f41ee8c0400d38e39939feb8105bb54630cfbf8a4e44b83a5c2ee",
+      "sockets": [
+        {
+          "group": 0,
+          "attr": "S",
+          "sColour": "R"
+        },
+        {
+          "group": 0,
+          "attr": "S",
+          "sColour": "R"
+        }
+      ],
+      "name": "Lavianga's Wisdom",
+      "typeLine": "War Hammer",
+      "baseType": "War Hammer",
+      "rarity": "Unique",
+      "ilvl": 74,
+      "identified": true,
+      "properties": [
+        {
+          "name": "One Handed Mace",
+          "values": [],
+          "displayMode": 0
+        },
+        {
+          "name": "Physical Damage",
+          "values": [
+            [
+              "34-81",
+              1
+            ]
+          ],
+          "displayMode": 0,
+          "type": 9
+        },
+        {
+          "name": "Critical Strike Chance",
+          "values": [
+            [
+              "5.00%",
+              0
+            ]
+          ],
+          "displayMode": 0,
+          "type": 12
+        },
+        {
+          "name": "Attacks per Second",
+          "values": [
+            [
+              "1.45",
+              0
+            ]
+          ],
+          "displayMode": 0,
+          "type": 13
+        },
+        {
+          "name": "Weapon Range: {0} metres",
+          "values": [
+            [
+              "1.1",
+              0
+            ]
+          ],
+          "displayMode": 3,
+          "type": 14
+        }
+      ],
+      "requirements": [
+        {
+          "name": "Level",
+          "values": [
+            [
+              "20",
+              0
+            ]
+          ],
+          "displayMode": 0,
+          "type": 62
+        },
+        {
+          "name": "Str",
+          "values": [
+            [
+              "71",
+              0
+            ]
+          ],
+          "displayMode": 1,
+          "type": 63
+        }
+      ],
+      "implicitMods": [
+        "10% reduced Enemy Stun Threshold"
+      ],
+      "explicitMods": [
+        "162% increased Physical Damage",
+        "+70 to maximum Life",
+        "+70 to maximum Mana",
+        "5% reduced Movement Speed",
+        "16% increased Area of Effect",
+        "14% increased Area Damage"
+      ],
+      "flavourText": [
+        "\"The painful memories are the easiest to recall.\"\r",
+        "- Lavianga, Advisor to Kaom"
+      ],
+      "frameType": 3,
+      "x": 0,
+      "y": 0,
+      "inventoryId": "Weapon2",
+      "socketedItems": []
+    }
+  ],
+  "character": {
+    "name": "VmFirstLA",
+    "realm": "pc",
+    "class": "Deadeye",
+    "league": "Standard",
+    "level": 95,
+    "lastLoginTime": 1728804530
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "poe2-filter-parser",
+  "version": "1.0.0",
+  "description": "Parser and validator for Path of Exile 2 item filters",
+  "keywords": [
+    "path-of-exile-2",
+    "poe2",
+    "loot-filter",
+    "parser",
+    "validator"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "author": "poe-aio",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build:grammar": "bunx peggy -o src/parser.js src/poe2-filter.pegjs --format=es",
+    "build:ts": "bun build src/index.ts --outdir dist --target node",
+    "build": "bun run build:grammar && bun run build:ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "peggy": "^4.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  }
+}

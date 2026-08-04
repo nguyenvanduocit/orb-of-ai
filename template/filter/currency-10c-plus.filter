@@ -1,0 +1,43 @@
+#===============================================================================================================
+# POE2 Filter — Currency 10c+
+# Shows ONLY Stackable Currency orbs worth >= 10 Chaos. Hides everything else.
+# Prices: poe2scout, Runes of Aldur, 2026-06-28 (1 Chaos = 41.4 ex, 1 Divine = 10c).
+# Snapshot-gated: re-run /lootfilter to refresh as prices move.
+#===============================================================================================================
+
+#===============================================================================================================
+# [[0100]] S-tier orbs (>1000c) — Mirror, Hinekora's Lock
+#===============================================================================================================
+
+Show # %D6 $type->currency $tier->stier !cur_stier
+    Class == "Stackable Currency"
+    BaseType == "Mirror of Kalandra" "Hinekora's Lock"
+    SetFontSize 45
+    SetTextColor 255 255 255 255
+    SetBorderColor 220 50 50 255
+    SetBackgroundColor 70 0 0 255
+    PlayEffect Red
+    MinimapIcon 0 Red Star
+    PlayAlertSound 6 300
+
+#===============================================================================================================
+# [[0200]] A-tier orbs (10-100c) — Fracturing, Perfect Chaos, Perfect Exalted, Divine
+#===============================================================================================================
+
+Show # %D5 $type->currency $tier->atier !cur_atier
+    Class == "Stackable Currency"
+    BaseType == "Fracturing Orb" "Perfect Chaos Orb" "Perfect Exalted Orb" "Divine Orb"
+    SetFontSize 42
+    SetTextColor 255 255 255 255
+    SetBorderColor 200 100 30 255
+    SetBackgroundColor 55 25 0 255
+    PlayEffect Orange
+    MinimapIcon 1 Orange Diamond
+    PlayAlertSound 2 280
+
+#===============================================================================================================
+# [[0900]] Hide everything else
+#===============================================================================================================
+
+Hide # %H5 $type->hidelayer $tier->everything !hide_all
+    DisableDropSound True

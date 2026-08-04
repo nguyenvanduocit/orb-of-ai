@@ -1,0 +1,13 @@
+node_modules/
+data/
+logs/
+.env
+.env.example
+.omc/
+.git/
+*.tar.gz
+*.log
+.DS_Store
+Dockerfile
+fly.toml
+pm2.config.cjs

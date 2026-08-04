@@ -1,0 +1,16 @@
+# MINIMAL WAYSTONE TEST FILTER
+# If this works, the issue is in the main filter
+# If this doesn't work, there's a game/syntax issue
+
+Show
+	Class == "Waystones"
+	SetFontSize 45
+	SetTextColor 255 0 255 255
+	SetBorderColor 255 0 255 255
+	SetBackgroundColor 0 0 0 255
+	PlayEffect Pink
+	MinimapIcon 0 Pink Star
+	PlayAlertSound 1 300
+
+# Hide everything else
+Hide

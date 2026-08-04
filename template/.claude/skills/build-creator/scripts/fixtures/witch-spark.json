@@ -1,0 +1,9 @@
+{
+  "level": 80,
+  "class": "Witch",
+  "ascendancy": "Infernalist",
+  "skills": [
+    { "label": "Main", "gems": ["Spark 20/20"], "main": 1 }
+  ],
+  "tree": { "treeVersion": "0_4", "nodes": [] }
+}

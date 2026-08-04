@@ -1,0 +1,2128 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DiscordHero ↔ TaskbarHero — Báo cáo tiến độ song song hoá 90%</title>
+<style>
+  :root {
+    --bg: #fbfbfa; --fg: #1c1c1c; --muted: #6b6b6b;
+    --card: #ffffff; --border: #e5e5e5; --accent: #2563eb;
+    --code-bg: #f4f4f5;
+    --warn-bg: #fef3c7; --warn-fg: #92400e; --warn-bd: #f59e0b;
+    --tip-bg:  #dbeafe; --tip-fg:  #1e40af; --tip-bd:  #2563eb;
+    --danger-bg: #fee2e2; --danger-fg: #991b1b; --danger-bd: #ef4444;
+    --ok-bg: #dcfce7; --ok-fg: #166534; --ok-bd: #22c55e;
+    --chip-p-bg:#dcfce7; --chip-p-fg:#166534;
+    --chip-b-bg:#fef3c7; --chip-b-fg:#92400e;
+    --chip-f-bg:#f1f1f2; --chip-f-fg:#6b6b6b;
+    --chip-w-bg:#fee2e2; --chip-w-fg:#991b1b;
+    --st-approved-bg:#dcfce7; --st-approved-fg:#166534;
+    --st-review-bg:#dbeafe; --st-review-fg:#1e40af;
+    --st-fix-bg:#ffedd5; --st-fix-fg:#9a3412;
+    --st-invest-bg:#ede9fe; --st-invest-fg:#5b21b6;
+    --st-blocked-bg:#fee2e2; --st-blocked-fg:#991b1b;
+    --st-live-bg:#e5e7eb; --st-live-fg:#374151;
+    --conf-high-bg:#111827; --conf-high-fg:#ffffff;
+    --conf-med-bg:#e5e7eb; --conf-med-fg:#374151;
+    --conf-low-bg:#fef3c7; --conf-low-fg:#92400e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f10; --fg: #ececed; --muted: #9a9a9d;
+      --card: #18181a; --border: #2a2a2d; --accent: #60a5fa;
+      --code-bg: #1c1c1f;
+      --warn-bg: #2a210d; --warn-fg: #fbbf24; --warn-bd: #b45309;
+      --tip-bg:  #0e1d35; --tip-fg:  #93c5fd; --tip-bd:  #3b82f6;
+      --danger-bg: #2c1113; --danger-fg: #fca5a5; --danger-bd: #ef4444;
+      --ok-bg: #0f2417; --ok-fg: #86efac; --ok-bd: #22c55e;
+      --chip-p-bg:#0f2417; --chip-p-fg:#86efac;
+      --chip-b-bg:#2a210d; --chip-b-fg:#fbbf24;
+      --chip-f-bg:#232326; --chip-f-fg:#9a9a9d;
+      --chip-w-bg:#2c1113; --chip-w-fg:#fca5a5;
+      --st-approved-bg:#0f2417; --st-approved-fg:#86efac;
+      --st-review-bg:#0e1d35; --st-review-fg:#93c5fd;
+      --st-fix-bg:#2a1a0a; --st-fix-fg:#fdba74;
+      --st-invest-bg:#211a35; --st-invest-fg:#c4b5fd;
+      --st-blocked-bg:#2c1113; --st-blocked-fg:#fca5a5;
+      --st-live-bg:#232326; --st-live-fg:#c9c9cc;
+      --conf-high-bg:#ececed; --conf-high-fg:#111827;
+      --conf-med-bg:#2a2a2d; --conf-med-fg:#d4d4d8;
+      --conf-low-bg:#2a210d; --conf-low-fg:#fbbf24;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f0f10; --fg: #ececed; --muted: #9a9a9d;
+    --card: #18181a; --border: #2a2a2d; --accent: #60a5fa;
+    --code-bg: #1c1c1f;
+    --warn-bg: #2a210d; --warn-fg: #fbbf24; --warn-bd: #b45309;
+    --tip-bg:  #0e1d35; --tip-fg:  #93c5fd; --tip-bd:  #3b82f6;
+    --danger-bg: #2c1113; --danger-fg: #fca5a5; --danger-bd: #ef4444;
+    --ok-bg: #0f2417; --ok-fg: #86efac; --ok-bd: #22c55e;
+    --chip-p-bg:#0f2417; --chip-p-fg:#86efac;
+    --chip-b-bg:#2a210d; --chip-b-fg:#fbbf24;
+    --chip-f-bg:#232326; --chip-f-fg:#9a9a9d;
+    --chip-w-bg:#2c1113; --chip-w-fg:#fca5a5;
+    --st-approved-bg:#0f2417; --st-approved-fg:#86efac;
+    --st-review-bg:#0e1d35; --st-review-fg:#93c5fd;
+    --st-fix-bg:#2a1a0a; --st-fix-fg:#fdba74;
+    --st-invest-bg:#211a35; --st-invest-fg:#c4b5fd;
+    --st-blocked-bg:#2c1113; --st-blocked-fg:#fca5a5;
+    --st-live-bg:#232326; --st-live-fg:#c9c9cc;
+    --conf-high-bg:#ececed; --conf-high-fg:#111827;
+    --conf-med-bg:#2a2a2d; --conf-med-fg:#d4d4d8;
+    --conf-low-bg:#2a210d; --conf-low-fg:#fbbf24;
+  }
+  :root[data-theme="light"] {
+    --bg: #fbfbfa; --fg: #1c1c1c; --muted: #6b6b6b;
+    --card: #ffffff; --border: #e5e5e5; --accent: #2563eb;
+    --code-bg: #f4f4f5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .layout { display: grid; grid-template-columns: 250px 1fr; gap: 0;
+    max-width: 1180px; margin: 0 auto; }
+  aside.toc { padding: 24px 16px 32px 20px; border-right: 1px solid var(--border);
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    font-size: 13px; line-height: 1.5; }
+  aside.toc details { margin: 0; }
+  aside.toc summary { cursor: pointer; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin: 0 0 8px; list-style: none; }
+  aside.toc summary::-webkit-details-marker { display: none; }
+  aside.toc summary::before { content: "▸ "; }
+  aside.toc details[open] summary::before { content: "▾ "; }
+  aside.toc h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin: 16px 0 8px; }
+  aside.toc ul { list-style: none; padding: 0; margin: 0 0 4px; }
+  aside.toc a { display: block; padding: 4px 8px; color: var(--fg); text-decoration: none;
+    border-radius: 4px; }
+  aside.toc a:hover { background: var(--code-bg); }
+  aside.toc a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  main { padding: 40px 40px 96px; min-width: 0; }
+  main h1 { font-size: 28px; margin: 0 0 6px; line-height: 1.25; }
+  main .abstract { color: var(--muted); font-size: 16px; margin: 0 0 20px; max-width: 74ch; }
+  main .hero-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
+  main h2 { font-size: 21px; margin: 44px 0 14px; padding-top: 10px; border-top: 1px solid var(--border); }
+  main h3 { font-size: 16px; margin: 22px 0 8px; }
+  main p { max-width: 78ch; }
+  main ul, main ol { max-width: 78ch; }
+  main li { margin: 4px 0; }
+  figure { margin: 20px 0; }
+  .svg-scroll { overflow-x: auto; background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; }
+  .svg-scroll svg { display: block; min-width: 640px; width: 100%; height: auto; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* status chips (lane dashboard) */
+  .status { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .status-approved { background: var(--st-approved-bg); color: var(--st-approved-fg); }
+  .status-review   { background: var(--st-review-bg); color: var(--st-review-fg); }
+  .status-fix       { background: var(--st-fix-bg); color: var(--st-fix-fg); }
+  .status-invest    { background: var(--st-invest-bg); color: var(--st-invest-fg); }
+  .status-blocked   { background: var(--st-blocked-bg); color: var(--st-blocked-fg); }
+  .status-live      { background: var(--st-live-bg); color: var(--st-live-fg); }
+  .status-queued    { background: var(--code-bg); color: var(--muted); border: 1px dashed var(--border); }
+
+  /* confidence badges */
+  .conf { display: inline-block; padding: 1px 7px; border-radius: 5px; font-size: 10.5px;
+    font-weight: 700; letter-spacing: 0.03em; vertical-align: 1px; }
+  .conf-high { background: var(--conf-high-bg); color: var(--conf-high-fg); }
+  .conf-med  { background: var(--conf-med-bg); color: var(--conf-med-fg); }
+  .conf-low  { background: var(--conf-low-bg); color: var(--conf-low-fg); }
+
+  /* tier chips (matrix table P/B/F/△) */
+  .chip { display: inline-block; min-width: 20px; text-align: center; padding: 1px 6px; border-radius: 5px;
+    font-size: 12px; font-weight: 700; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .chip-p { background: var(--chip-p-bg); color: var(--chip-p-fg); }
+  .chip-b { background: var(--chip-b-bg); color: var(--chip-b-fg); }
+  .chip-f { background: var(--chip-f-bg); color: var(--chip-f-fg); }
+  .chip-w { background: var(--chip-w-bg); color: var(--chip-w-fg); }
+  .pill-cat { display: inline-block; padding: 1px 8px; border-radius: 5px; font-size: 11px; font-weight: 700;
+    background: var(--code-bg); border: 1px solid var(--border); font-family: ui-monospace, monospace; }
+
+  /* dashboard cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .card .n { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .card .l { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .card.big-stat { grid-column: span 2; }
+
+  /* tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 560px; }
+  table.wide { min-width: 900px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--code-bg); position: sticky; top: 0; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.03em; color: var(--muted); white-space: nowrap; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  td.num, td.center { text-align: center; }
+  td.mono, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; }
+  td.small, .small { font-size: 12.5px; color: var(--muted); }
+  td.idlist { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--muted); }
+  tr.is-hidden { display: none; }
+
+  /* filter bar */
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 4px;
+    font-size: 13px; }
+  .filter-bar label { color: var(--muted); margin-right: 4px; }
+  .filter-bar select { font: inherit; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--card); color: var(--fg); }
+  .filter-count { color: var(--muted); font-size: 12.5px; }
+
+  .code-block { display: grid; grid-template-columns: 1fr 260px; gap: 16px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    margin: 16px 0; padding: 14px; }
+  @media (max-width: 900px) { .code-block { grid-template-columns: 1fr; } }
+  .code-block pre { margin: 0; padding: 10px; background: var(--code-bg); border-radius: 6px;
+    font: 12.5px/1.55 ui-monospace, "SF Mono", Menlo, monospace; overflow-x: auto; }
+  .code-block .note { font-size: 13.5px; color: var(--muted); }
+
+  .callout { border-left: 4px solid; padding: 12px 16px; border-radius: 0 8px 8px 0;
+    margin: 16px 0; font-size: 13.5px; line-height: 1.55; max-width: 78ch; }
+  .callout.warn { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-bd); }
+  .callout.tip  { background: var(--tip-bg);  color: var(--tip-fg);  border-color: var(--tip-bd); }
+  .callout.danger { background: var(--danger-bg); color: var(--danger-fg); border-color: var(--danger-bd); }
+  .callout.ok { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
+  .callout strong { display: block; margin-bottom: 4px; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.06em; }
+
+  details.appendix { margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
+    background: var(--card); }
+  details.appendix > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+  details.appendix[open] > summary { margin-bottom: 8px; }
+
+  footer { font-size: 12px; line-height: 1.6; color: var(--muted);
+    border-top: 1px solid var(--border); padding: 24px 0; margin-top: 48px; max-width: 78ch; }
+
+  @media (max-width: 780px) {
+    .layout { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100%; }
+    aside.toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+    main { padding: 20px 16px; width: 100%; overflow-x: hidden; }
+    .card.big-stat { grid-column: span 2; }
+  }
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: minmax(0, 1fr); }
+    .card.big-stat { grid-column: auto; }
+    main h1 { font-size: 22px; overflow-wrap: anywhere; }
+    .status { white-space: normal; }
+  }
+  @media print {
+    aside.toc { display: none; }
+    .layout { display: block; }
+    main { padding: 0; }
+    figure, .code-block, .callout, .card, table { break-inside: avoid; }
+    details.appendix { break-inside: auto; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="toc">
+    <details open>
+      <summary>Mục lục</summary>
+      <ul>
+        <li><a href="#tong-quan">Tổng quan &amp; mục tiêu</a></li>
+        <li><a href="#su-that-goc">Sự thật gốc: 0/80</a></li>
+        <li><a href="#dashboard">Bảng điều khiển tổng quan</a></li>
+        <li><a href="#kien-truc">Luồng bằng chứng (kiến trúc)</a></li>
+        <li><a href="#ma-tran">Ma trận 80 năng lực</a></li>
+        <li><a href="#vong-lap-loi">Khoảng trống vòng lặp lõi</a></li>
+        <li><a href="#tac-nhan">Tác nhân &amp; kỷ luật vận hành</a></li>
+        <li><a href="#bang-chung">Bằng chứng cụ thể</a></li>
+        <li><a href="#rui-ro">Sổ rủi ro &amp; hàng đợi</a></li>
+        <li><a href="#gioi-han">Giới hạn xác minh</a></li>
+        <li><a href="#tham-chieu">Tham chiếu nguồn</a></li>
+      </ul>
+    </details>
+    <h2>Siêu dữ liệu</h2>
+    <p style="margin:0;color:var(--muted)">
+      Cập nhật lúc 2026-07-30 11:27 (Asia/Ho_Chi_Minh)<br>
+      Điểm kiểm toán nghiêm ngặt: <strong style="color:var(--fg)">0 / 80</strong><br>
+      Mục tiêu release: 72 / 80 (90%)
+    </p>
+  </aside>
+
+  <main>
+    <h1 id="tong-quan">DiscordHero ↔ TaskbarHero — Báo cáo tiến độ song song hoá</h1>
+    <p class="abstract">
+      Chương trình DiscordHero đang cố tái tạo lại ít nhất <strong>90% trải nghiệm chơi của TaskbarHero</strong>
+      thông qua Discord (<code>/discordhero</code>, <code>src/discord-hero/**</code>), với bằng chứng E2E thật
+      (slash → nút bấm/menu → SQLite), simulator giả lập Discord, và review độc lập cho từng năng lực. Báo cáo
+      này tổng hợp snapshot đã khóa hash từ kiểm toán Phase 1-4, ma trận 80 năng lực, các review độc lập mới
+      nhất, và mã nguồn hiện tại. Trạng thái worker chỉ là ảnh chụp theo thời gian, không được dùng làm bằng
+      chứng release.
+    </p>
+    <div class="hero-meta">
+      <span class="status status-blocked">Điểm nghiêm ngặt: 0/80 (0.00%)</span>
+      <span class="status status-invest">Vòng lặp lõi: chưa tồn tại</span>
+      <span class="status status-live">Live Discord: UNVERIFIED</span>
+      <span class="conf conf-high">HIGH</span>
+    </div>
+
+    <h2 id="su-that-goc">Sự thật gốc — điểm strict vẫn 0/80; trần T1 cục bộ đã được sửa</h2>
+    <p>
+      Kiểm toán tổng (<code>01-master-audit.md</code>, xác minh SHA-256 khớp <code>SHA256SUMS.txt</code>) kết luận
+      <strong>REQUEST_CHANGES</strong> và ghi rõ: không có bài test nào bắt đầu từ đúng entry point
+      <code>/discordhero execute</code> thật rồi chỉ dùng custom-ID/giá trị select do chính response trước đó
+      phát ra — vì vậy tầng <strong>T4 (emitted-control E2E)</strong> fail ở toàn bộ 80/80 dòng, và tử số chính
+      xác là <strong>0</strong>. Đây là điểm <em>bị đóng băng tại thời điểm kiểm toán</em>, không phải điểm sống.
+    </p>
+    <div class="callout danger">
+      <strong>Sự thật cứng cần nói trước</strong>
+      Vòng lặp chơi lõi (đội hình → vào màn → chiến đấu → thưởng) <strong>chưa tồn tại</strong> trên production:
+      mutation đội hình bị oracle chặn (<code>ui/workspace.ts:3478-3486</code>), World chỉ hiện preview và không
+      áp dụng combat/thưởng (<code>:3548-3565</code>), <code>simulateCampaignStage</code> luôn ném
+      <code>OracleRequiredError</code> (<code>domain/campaign.ts:299-317</code>), và thực thi skill luôn ném lỗi
+      (<code>domain/skills.ts:130-140</code>). Dashboard 90% <strong>phải giữ màu đỏ</strong> cho tới khi mọi
+      cổng vòng lặp lõi qua, kể cả khi 72/80 dòng khác đã qua hết các tầng còn lại.
+    </div>
+    <p>
+      <strong>Tách bạch rõ:</strong> điểm strict chính thức vẫn là <strong>0/80</strong> vì chưa có ma trận
+      T1–T5 được sinh lại và ký attestation. Tuy nhiên, kiểm tra lại authority đã sửa một giả định quan trọng:
+      <code>items_detail.dropKey</code> ánh xạ đủ <strong>59/59</strong> trang vật phẩm STAGEBOX thành
+      <strong>41 DropKey</strong>, không thiếu trang nào:
+      <strong>2.428 dòng drops theo 41 key duy nhất</strong> và <strong>3.975 dòng theo từng trang</strong>
+      (có lặp vì nhiều box dùng chung key); join đúng qua <code>items.id</code> và
+      <code>item_groups.ItemGroupKey</code> cho <strong>0 reward ref bị thiếu</strong>. Hai loại drop duy nhất là
+      <code>EachDropOneWeight</code> và <code>EachDropOneWeight_DLCVariant</code>; cả 59 trang đều nói mỗi lần mở
+      roll đúng một reward theo weight. Vì vậy BOX-01/02/03 có thể thăng hạng T1 từ nguồn local. Trần T1 bảo thủ
+      là <strong>69/80</strong>; trần mở rộng
+      là <strong>74/80</strong> khi chưa tính CAT-03, hoặc <strong>75/80</strong> nếu authority CAT-03 được chấp
+      nhận. Đây là <em>trần authority</em>, không phải điểm parity đang đạt.
+    </p>
+
+    <h2 id="dashboard">Bảng điều khiển tổng quan</h2>
+    <p>Đếm theo 17 "lane" (mảng công việc) trong snapshot, cập nhật bằng report và hash cụ thể được liệt kê bên
+      dưới. Đây là trạng thái <em>quy trình</em> (author/reviewer/kiến trúc), không phải điểm ma trận 80 năng lực
+      — hai bảng số này độc lập với nhau và không được cộng dồn vào nhau.</p>
+    <div class="cards">
+      <div class="card"><div class="n">9</div><div class="l">APPROVE / verified theo phạm vi exact-hash</div></div>
+      <div class="card"><div class="n">0</div><div class="l">REQUEST_CHANGES hiện hành trong 17 lane</div></div>
+      <div class="card"><div class="n">1</div><div class="l">Kiến trúc hoàn tất, chờ quyết định thiết kế</div></div>
+      <div class="card"><div class="n">2</div><div class="l">Lane cũ trong hàng đợi, chưa có evidence mới</div></div>
+      <div class="card"><div class="n">3+</div><div class="l">Cần capture/oracle có authority</div></div>
+      <div class="card"><div class="n">1</div><div class="l">Live Discord: chưa xác minh</div></div>
+    </div>
+    <div class="cards" style="margin-top:6px">
+      <div class="card big-stat"><div class="n">0 / 80</div><div class="l">Điểm nghiêm ngặt hiện tại (đóng băng, HIGH)</div></div>
+      <div class="card big-stat"><div class="n">72 / 80</div><div class="l">Ngưỡng release bắt buộc (90%, làm tròn lên)</div></div>
+      <div class="card big-stat"><div class="n">69 / 80</div><div class="l">Trần T1 local bảo thủ, không phải điểm parity</div></div>
+      <div class="card big-stat"><div class="n">74–75 / 80</div><div class="l">Trần T1 mở rộng, CAT-03 còn điều kiện</div></div>
+    </div>
+    <div class="hero-meta" aria-label="Chú giải trạng thái">
+      <span class="status status-approved">APPROVED / VERIFIED — exact-hash, xem nguồn từng lane</span>
+      <span class="status status-review">DESIGN_AWAITING_DECISION — kiến trúc xong, chưa triển khai</span>
+      <span class="status status-fix">REQUEST_CHANGES — còn finding phải đóng</span>
+      <span class="status status-blocked">BLOCKED — thiếu authority/oracle</span>
+      <span class="status status-live">UNVERIFIED — chưa có bằng chứng live</span>
+    </div>
+
+    <h3>Trạng thái theo lane công việc (17 lane trong snapshot)</h3>
+    <div class="filter-bar">
+      <label for="lane-filter">Lọc theo trạng thái:</label>
+      <select id="lane-filter">
+        <option value="ALL">Tất cả</option>
+        <option value="approved">Đã duyệt</option>
+        <option value="review">Kiến trúc xong, chờ quyết định</option>
+        <option value="fix">Yêu cầu sửa — đang fix</option>
+        <option value="invest">Đang điều tra</option>
+        <option value="blocked">Bị chặn / oracle</option>
+        <option value="live">Live Discord</option>
+        <option value="queued">Trong hàng đợi</option>
+      </select>
+      <span class="filter-count" id="lane-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table class="wide" id="lane-table">
+        <thead><tr>
+          <th>Lane</th><th>Trạng thái</th><th>Độ tin cậy</th><th>Bằng chứng / task ref</th>
+        </tr></thead>
+        <tbody>
+          <tr data-status="approved">
+            <td>Sound topology (domain, quan hệ âm thanh nguồn)</td>
+            <td><span class="status status-approved">✅ Đã duyệt (Phase-6)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Msg <code>APPROVE: Phase-6 sound topology review</code>, 2026-07-30 01:24:26Z — "no in-scope findings", đã qua focused+neighbor suites, typecheck, format, artifact, hash. Hash hiện tại (đọc trực tiếp, chưa đối chiếu lại pin lúc duyệt): <code>src/discord-hero/domain/sound-topology.ts</code> = <code>6d811299b8…d969</code>.</td>
+          </tr>
+          <tr data-status="approved">
+            <td>Drop topology (domain, tỉ lệ rơi đồ)</td>
+            <td><span class="status status-approved">✅ Đã duyệt (Phase-6, chuỗi cuối)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small"><code>/tmp/task_604f588a8a68-drop-topology-phase6-review.md</code> ghi
+              <strong>APPROVE — HIGH</strong>, không còn finding; Proxy sabotage và unsafe-order mutant đã được
+              replay độc lập. Hash hiện tại: <code>src/discord-hero/domain/drop-topology.ts</code> =
+              <code>e2f4c660…e57</code>.</td>
+          </tr>
+          <tr data-status="approved">
+            <td>Synthesis browser (UI, duyệt công thức tổng hợp)</td>
+            <td><span class="status status-approved">✅ Đã duyệt độc lập</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small"><code>/tmp/synthesis-browser-phase5.Awwhaj/verification-report.md</code> ghi
+              <strong>APPROVE — HIGH</strong> sau PoC Proxy/topology, neighbor tests, typecheck và mutation replay.
+              Hash hiện tại: <code>src/discord-hero/ui/synthesis-browser.ts</code> = <code>a346b9c4…c3a</code>.</td>
+          </tr>
+          <tr data-status="approved">
+            <td>Rune Effects (UI, hiệu ứng Rune sở hữu)</td>
+            <td><span class="status status-approved">✅ Đã duyệt (Phase-6, 3 vòng xác nhận)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small"><code>task_6c16ca6b4dff</code> — literal "APPROVE… 197/198 cap invariants… no
+              behavioral findings". Hash <strong>đã tự xác minh trùng khớp ngay bây giờ</strong>:
+              <code>rune-effects.ts</code> = <code>ad227711…158</code>, <code>rune-effects.test.ts</code> =
+              <code>3e6f2b0c…9cb</code> — không trôi kể từ lúc duyệt.</td>
+          </tr>
+          <tr data-status="approved">
+            <td>Combat (domain, kháng/né/giáp/preflight trước RNG)</td>
+            <td><span class="status status-approved">✅ APPROVE — HIGH (Phase-6)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small"><code>/private/tmp/claude-501/-Users-firegroup-projects-discord-claude-bot/f428a5dc-b42c-43a7-931b-dd99334f1ed4/scratchpad/reviewer-report.md</code>
+              (SHA-256 <code>d3a8e3ae…ba5a3</code>) duyệt hash hiện tại: <strong>55/55 focused</strong>,
+              <strong>72/72 combat+stats+campaign</strong>, ma trận <strong>23 candidate</strong>; mutant
+              <code>[damage]</code> được chứng minh tương đương hành vi còn các mutant không tương đương đều bị
+              giết. <code>combat.ts</code>=<code>e4287190…7aff1ee</code>,
+              <code>combat.test.ts</code>=<code>b13ba875…8bf7bfb7</code>.</td>
+          </tr>
+          <tr data-status="approved">
+            <td>Materials / Extraction browser (UI)</td>
+            <td><span class="status status-approved">✅ APPROVE — HIGH (authority hardening)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Trạng thái cuối của chương trình là <strong>APPROVE — HIGH</strong> trên exact
+              hashes hiện tại. Author handoff <code>/private/tmp/materials-authority-post-import-followup.md</code>
+              (SHA-256 <code>fbf83c60…ab6cd</code>) ghi <strong>143/143</strong> targeted tests,
+              <strong>49.201 assertions</strong>, scoped/global TypeScript sạch, 11 mutant bị giết; nguồn này là
+              handoff tác giả, không được mô tả thành independent review. Pins:
+              <code>indexes a8191632…d4668b7</code>, <code>test 0ade3c4b…23d68</code>,
+              <code>loader 733b8093…aa19b</code>, <code>UI a210de57…9b131</code>,
+              <code>UI test d1fe6c37…bb616</code>.</td>
+          </tr>
+          <tr data-status="approved">
+            <td>Unique-mod topology (domain, ánh xạ mod độc nhất)</td>
+            <td><span class="status status-approved">✅ Đã duyệt (Phase-6 + cross-model)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small"><code>task_dc1905cc9111</code> — literal APPROVE, "27/27 focused, 111 neighbor,
+              15/15 guard mutants killed, 7/8 trust mutants (1 tương đương)". Hash tự xác minh trùng khớp:
+              <code>unique-mod-topology.ts</code> = <code>451096d4…166</code>, test = <code>8202ea9d…408</code>.</td>
+          </tr>
+          <tr data-status="approved">
+            <td>Slash-root E2E simulator + testkit</td>
+            <td><span class="status status-approved">✅ APPROVE — HIGH (mock-protocol scope)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small"><code>/tmp/orca-phase6-discordhero-e2e-w7n51S/reports/phase6-discordhero-e2e-review.md</code>
+              (SHA-256 <code>adbb3297…1a22a</code>) ghi APPROVE: <strong>11/11 focused</strong>,
+              <strong>79 neighbors</strong>, serial×10 và
+              concurrency×4, protocol ack, hostile controls, payload bounds, SQLite/WAL/SHM cleanup. Bốn hash
+              được reviewer pin là <code>fba5ac… / 8cbbde… / 81337f… / 6ca057…</code>; command và E2E hiện tại
+              đã đổi trong lane Item Effects, nên verdict này chỉ áp dụng đúng frozen mock-protocol scope đã
+              duyệt. <strong>Live Discord vẫn UNVERIFIED.</strong></td>
+          </tr>
+          <tr data-status="approved">
+            <td>Item Effects (UI slice: Inventory → Rolled → chi tiết)</td>
+            <td><span class="status status-approved">✅ APPROVE — HIGH (recovery slice)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Trạng thái cuối của chương trình là <strong>APPROVE — HIGH</strong> trên exact
+              hashes hiện tại. Author report <code>/private/tmp/item-effects-recovery-fix3-author/artifact-4-report.md</code>
+              (SHA-256 <code>7498c411…b8271</code>) ghi <strong>128/128</strong> sweep,
+              <strong>6/6 exact-source mutants</strong>, E2E 6/6 và recovery đúng 10 Button + 1 SELECT; nguồn này
+              tự ghi là author handoff, không phải independent review. Pins:
+              <code>command f3dcceed…eac4</code>, <code>command test a4298449…4ba</code>,
+              <code>domain 81220916…e21d</code>, <code>domain test df16f550…e7367</code>.</td>
+          </tr>
+          <tr data-status="review">
+            <td>Starter / formation + StageBox deterministic T2 architecture</td>
+            <td><span class="status status-review">🔵 Kiến trúc hoàn tất — chờ duyệt Option A / strict-TDD</span></td>
+            <td><span class="conf conf-med">MEDIUM</span></td>
+            <td class="small"><code>/tmp/discordhero-starter-formation-architecture.md</code>
+              (SHA-256 <code>619f8fb8…aa005</code>) đề xuất Option A: ba base hero được sở hữu là
+              <strong>MEDIUM inference</strong>, chỉ một hero được triển khai là <strong>HIGH</strong>, capacity
+              <strong>1 + Rune 21 (+1) + Rune 24 (+1)</strong> là <strong>HIGH</strong>; vẫn chờ user duyệt
+              thiết kế A, chưa có code/test. <code>/tmp/discordhero-stagebox-t2-architecture.md</code>
+              (SHA-256 <code>4b5b4f95…3c603</code>) hoàn tất thiết kế deterministic T2 nhưng ghi rõ
+              <strong>READY FOR STRICT-TDD PHASE 5, NOT APPROVED</strong>; T3–T5 vẫn chưa triển khai.</td>
+          </tr>
+          <tr data-status="queued">
+            <td>Campaign save-delta — L1 security review (thăng hạng oracle WORLD-04)</td>
+            <td><span class="status status-queued">⏳ Trong hàng đợi (ready, chưa dispatch)</span></td>
+            <td><span class="conf conf-med">MEDIUM</span></td>
+            <td class="small"><code>task_8ec6032f8002</code>, status <code>ready</code>: review bảo mật CLI khám
+              phá save-delta (symlink/TOCTOU/manifest giả) sau author <code>task_3e7bdfd19471</code>.</td>
+          </tr>
+          <tr data-status="queued">
+            <td>Chuẩn hoá đơn vị chiến đấu gốc của Hero (thăng hạng T1 cho STAT/HERO)</td>
+            <td><span class="status status-queued">⏳ Trong hàng đợi (chờ tín hiệu bắt đầu)</span></td>
+            <td><span class="conf conf-med">MEDIUM</span></td>
+            <td class="small"><code>task_3ea8e2dde2e0</code>, status <code>ready</code>: cố ý chưa cho chạy tới
+              khi có xác nhận rõ ràng sau khi <code>task_9d7db1c8f161</code> (Hero-stat) được duyệt độc lập, vì cả
+              hai cùng chạm <code>heroes.ts</code>/test.</td>
+          </tr>
+          <tr data-status="blocked">
+            <td>FND-03 · Mở khoá Hero</td>
+            <td><span class="status status-blocked">⛔ Bị chặn — cần oracle</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Oracle explicit: <code>preferences/taskbarhero/oracles/hero-unlock-investigation-v1.json:20-36</code>.
+              Lịch sử: 2 lần thử "Fail-closed Hero ownership and party transitions" đều <strong>FAILED</strong>
+              (<code>task_afad4c0d90f6</code>, <code>task_d48f69223e35</code>).</td>
+          </tr>
+          <tr data-status="blocked">
+            <td>PET-02 · Sắp xếp Pet</td>
+            <td><span class="status status-blocked">⛔ Bị chặn — cần oracle</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Oracle explicit: <code>preferences/taskbarhero/oracles/pet-arrangement-investigation-v1.json:28-54</code>.
+              Lịch sử: <code>task_dc2eb1684478</code> "Final Pet transition gate review" — <strong>FAILED</strong>.</td>
+          </tr>
+          <tr data-status="blocked">
+            <td>WORLD-04 · Lưu tiến trình clear màn</td>
+            <td><span class="status status-blocked">⛔ Bị chặn — cần oracle</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Oracle explicit: <code>src/discord-hero/oracles/campaign-save-delta-discovery.ts:10-11,81-96</code>.
+              Đang được thúc đẩy bởi review bảo mật hàng đợi ở trên (<code>task_8ec6032f8002</code>), nhưng
+              <strong>chưa được gỡ chặn</strong> tại thời điểm kiểm toán đóng băng.</td>
+          </tr>
+          <tr data-status="blocked">
+            <td>CAT-03 · Bộ sưu tập sở hữu/khám phá</td>
+            <td><span class="status status-blocked">⛔ Bị chặn — không có fixture</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Không có fixture chuyển trạng thái đáng tin cậy nào cho việc tách "đã khám phá" khỏi
+              "thuộc nguồn"; không phải oracle runtime tường minh mà là thiếu authority hoàn toàn.</td>
+          </tr>
+          <tr data-status="live">
+            <td>Live Discord smoke + deploy hash thật</td>
+            <td><span class="status status-live">◻ UNVERIFIED (chưa được uỷ quyền)</span></td>
+            <td><span class="conf conf-high">HIGH</span></td>
+            <td class="small">Không có mutation mạng/deploy nào được thực hiện hay uỷ quyền. Đây là cổng release
+              riêng, tách biệt khỏi T4 mock/SQLite đã APPROVE.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <strong>Về việc tái sử dụng task ID</strong>
+      Message duyệt Sound topology (01:24:26Z) mang <code>taskId</code> mà, tại thời điểm đọc ledger hôm nay, đã
+      được Orca gán lại cho một dispatch khác ("Unique-mod topology final independent review"). Đây là bằng chứng
+      trực tiếp cho quy tắc ở mục <a href="#gioi-han">Giới hạn xác minh</a>: workspace này không dùng Git, ID có
+      thể bị tái chế qua vòng đời hàng đợi — nên mọi khẳng định trong báo cáo bám vào <strong>nội dung message +
+      hash file</strong>, không bám vào con số task ID để tra cứu lại sau này.
+    </div>
+
+    <h2 id="kien-truc">Luồng bằng chứng: từ nguồn Taskbar tới release</h2>
+    <p>
+      Sơ đồ dưới đây là "đường ống" bằng chứng mà mọi năng lực phải đi qua trọn vẹn để được tính hoàn thành
+      (<code>P/P/P/P/P</code>). Mũi tên liền = luồng thuận đang hoạt động; mũi tên đứt cong = vòng phản hồi
+      REQUEST_CHANGES → sửa TDD → review lại; khối viền đỏ chấm chấm = khoảng trống chặn release ngay cả khi
+      luồng phía trên đã thông.
+    </p>
+    <figure>
+      <div class="svg-scroll">
+        <svg viewBox="0 0 1100 470" xmlns="http://www.w3.org/2000/svg" role="img"
+             aria-label="Luồng bằng chứng từ nguồn TaskbarHero tới release DiscordHero">
+          <defs>
+            <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/>
+            </marker>
+            <marker id="arrRed" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L9,3 z" fill="#ef4444"/>
+            </marker>
+          </defs>
+          <g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="14">
+            <!-- 6 main boxes -->
+            <g stroke="currentColor" stroke-width="1.5" fill="none">
+              <rect x="20"  y="50" width="140" height="90" rx="8"/>
+              <rect x="200" y="50" width="140" height="90" rx="8"/>
+              <rect x="380" y="50" width="140" height="90" rx="8"/>
+              <rect x="560" y="50" width="140" height="90" rx="8"/>
+              <rect x="740" y="50" width="140" height="90" rx="8"/>
+              <rect x="920" y="50" width="140" height="90" rx="8"/>
+            </g>
+            <g fill="currentColor" text-anchor="middle">
+              <text x="90"  y="88">Nguồn xác thực</text>
+              <text x="90"  y="106" font-size="12" fill="var(--muted, #6b6b6b)">TaskbarHero + oracle</text>
+              <text x="270" y="88">Domain /</text>
+              <text x="270" y="104">Use case</text>
+              <text x="270" y="122" font-size="12" fill="var(--muted, #6b6b6b)">bất biến + SQLite CAS</text>
+              <text x="450" y="88">Slash execute</text>
+              <text x="450" y="104">thật</text>
+              <text x="450" y="122" font-size="12" fill="var(--muted, #6b6b6b)">/discordhero</text>
+              <text x="630" y="88">Emitted</text>
+              <text x="630" y="104">controls</text>
+              <text x="630" y="122" font-size="12" fill="var(--muted, #6b6b6b)">nút / select thật</text>
+              <text x="810" y="88">SQLite /</text>
+              <text x="810" y="104">restart proof</text>
+              <text x="810" y="122" font-size="12" fill="var(--muted, #6b6b6b)">revision, idempotency</text>
+              <text x="990" y="88">Review độc lập</text>
+              <text x="990" y="104">+ attestation</text>
+              <text x="990" y="122" font-size="12" fill="var(--muted, #6b6b6b)">Phase-6 / T5; live tách riêng</text>
+            </g>
+            <!-- forward arrows -->
+            <g stroke="currentColor" stroke-width="1.5">
+              <line x1="160" y1="95" x2="200" y2="95" marker-end="url(#arr)"/>
+              <line x1="340" y1="95" x2="380" y2="95" marker-end="url(#arr)"/>
+              <line x1="520" y1="95" x2="560" y2="95" marker-end="url(#arr)"/>
+              <line x1="700" y1="95" x2="740" y2="95" marker-end="url(#arr)"/>
+              <line x1="880" y1="95" x2="920" y2="95" marker-end="url(#arr)"/>
+            </g>
+            <!-- tier labels under arrows -->
+            <g font-size="11" fill="var(--muted, #6b6b6b)" text-anchor="middle">
+              <text x="180" y="145">T1</text>
+              <text x="360" y="145">T2</text>
+              <text x="540" y="145">T3</text>
+              <text x="720" y="145">T4</text>
+              <text x="900" y="145">T5</text>
+            </g>
+            <!-- feedback curved arrow -->
+            <path d="M 990 140 C 990 260, 270 260, 270 140" fill="none" stroke="currentColor"
+                  stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arr)"/>
+            <text x="630" y="252" text-anchor="middle" font-size="12.5" fill="currentColor">
+              Strict RED → GREEN → review hash-bound
+            </text>
+            <!-- critical loop gap box -->
+            <rect x="380" y="330" width="320" height="86" rx="8" fill="none" stroke="#ef4444"
+                  stroke-width="1.6" stroke-dasharray="6,4"/>
+            <text x="540" y="360" text-anchor="middle" font-size="13.5" fill="#ef4444" font-weight="700">
+              ⛔ Vòng lặp lõi chưa nối
+            </text>
+            <text x="540" y="380" text-anchor="middle" font-size="12" fill="#ef4444">
+              Đội hình / World / Combat / Reward
+            </text>
+            <text x="540" y="397" text-anchor="middle" font-size="12" fill="#ef4444">
+              đều throw OracleRequiredError hoặc chỉ preview
+            </text>
+            <line x1="450" y1="330" x2="450" y2="140" stroke="#ef4444" stroke-width="1.3" stroke-dasharray="3,3" marker-end="url(#arrRed)"/>
+            <line x1="630" y1="330" x2="630" y2="140" stroke="#ef4444" stroke-width="1.3" stroke-dasharray="3,3" marker-end="url(#arrRed)"/>
+            <text x="540" y="440" text-anchor="middle" font-size="12" fill="#ef4444" font-weight="700">
+              → Chặn release dù 72/80 dòng khác đạt đủ tầng
+            </text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>
+        Hình 1 — Mỗi năng lực phải đi trọn vẹn 5 tầng T1→T5. Trong artifact kiểm toán đang đóng băng, T4
+        (0/80) và T5 (0/80) vẫn là 0 cho mọi dòng cho tới khi ma trận được sinh lại và ký attestation; khối đỏ
+        đánh dấu vòng lặp lõi — điều kiện release riêng, độc lập với việc leo tầng T1-T3 của 70+ dòng khác.
+      </figcaption>
+    </figure>
+
+    <h2 id="ma-tran">Ma trận 80 năng lực — phân theo nhóm</h2>
+    <p>
+      Mẫu số cố định là <strong>80</strong> năng lực chơi được, đo bởi 5 tầng bằng nhau
+      (xem <a href="#bang-chung">Bằng chứng cụ thể</a> cho định nghĩa T1-T5). Bảng dưới gộp theo 20 nhóm; bấm
+      "Xem đủ 80 dòng" ở cuối để mở bảng chi tiết từng năng lực với lý do chặn cụ thể.
+    </p>
+    <div class="cards">
+      <div class="card"><div class="n">80</div><div class="l">Tổng số năng lực (mẫu số)</div></div>
+      <div class="card"><div class="n">46</div><div class="l">T1 đạt (source-authoritative)</div></div>
+      <div class="card"><div class="n">34</div><div class="l">T1 yếu hoặc bị chặn (B)</div></div>
+      <div class="card"><div class="n">18 / 9 / 53</div><div class="l">T2≈T3: đạt / một phần △ / fail</div></div>
+    </div>
+    <div class="callout tip">
+      <strong>Vì sao cần ≥26/34</strong>
+      Ngay cả khi mọi năng lực <em>đã có</em> T1 (46 dòng) được đưa trọn vẹn tới T5, điểm tối đa chỉ đạt
+      46/80 = 57.5% — không thể chạm ngưỡng 90%. Toán học buộc phải thăng hạng authority (từ B/weak lên P) cho
+      ít nhất <strong>26 trong số 34</strong> dòng yếu/bị chặn hiện nay (46 + 26 = 72 = ngưỡng tối thiểu), bằng
+      oracle mới hoặc bằng chứng chuyển trạng thái Taskbar hợp lệ — không thể chỉ viết thêm test trên 46 dòng đã có.
+    </div>
+    <div class="filter-bar">
+      <label for="cat-filter">Nhóm:</label>
+      <select id="cat-filter">
+        <option value="ALL">Tất cả 20 nhóm</option>
+        <option value="FND">FND — Nền tảng</option>
+        <option value="HERO">HERO — Duyệt Hero</option>
+        <option value="ATTR">ATTR — Thuộc tính</option>
+        <option value="SKILL">SKILL — Skill chủ động</option>
+        <option value="PASS">PASS — Passive</option>
+        <option value="STAT">STAT — Tổng hợp chỉ số</option>
+        <option value="INV">INV — Kho đồ</option>
+        <option value="EQ">EQ — Trang bị</option>
+        <option value="BOX">BOX — Rương</option>
+        <option value="RUNE">RUNE — Rune</option>
+        <option value="PET">PET — Pet</option>
+        <option value="WORLD">WORLD — Bản đồ/Màn</option>
+        <option value="COMBAT">COMBAT — Chiến đấu</option>
+        <option value="REWARD">REWARD — Phần thưởng</option>
+        <option value="CUBE">CUBE — Cube/chế tác</option>
+        <option value="CAT">CAT — Catalog/Công cụ</option>
+        <option value="COMM">COMM — Cộng đồng</option>
+        <option value="ACH">ACH — Thành tựu</option>
+        <option value="MKT">MKT — Thị trường</option>
+        <option value="COS">COS — Trang phục</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table class="wide" id="cat-summary-table">
+        <thead><tr>
+          <th>Nhóm</th><th>Tên</th><th>Số dòng</th><th>T1 đạt</th><th>T1 yếu/chặn</th>
+          <th>T2≈T3 đạt</th><th>T2≈T3 một phần</th><th>ID</th>
+        </tr></thead>
+        <tbody>
+<tr data-cat="FND">
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Nền tảng (onboard/roster/đội hình)</td>
+  <td class="num">8</td>
+  <td class="num">2</td>
+  <td class="num">6</td>
+  <td class="num">2</td>
+  <td class="num">0</td>
+  <td class="idlist">FND-01, FND-02, FND-03, FND-04, FND-05, FND-06, FND-07, FND-08</td>
+</tr>
+<tr data-cat="HERO">
+  <td><span class="pill pill-cat">HERO</span></td>
+  <td>Duyệt Hero</td>
+  <td class="num">1</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="idlist">HERO-01</td>
+</tr>
+<tr data-cat="ATTR">
+  <td><span class="pill pill-cat">ATTR</span></td>
+  <td>Thuộc tính (Attribute)</td>
+  <td class="num">3</td>
+  <td class="num">1</td>
+  <td class="num">2</td>
+  <td class="num">2</td>
+  <td class="num">0</td>
+  <td class="idlist">ATTR-01, ATTR-02, ATTR-03</td>
+</tr>
+<tr data-cat="SKILL">
+  <td><span class="pill pill-cat">SKILL</span></td>
+  <td>Skill chủ động</td>
+  <td class="num">2</td>
+  <td class="num">1</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="idlist">SKILL-01, SKILL-02</td>
+</tr>
+<tr data-cat="PASS">
+  <td><span class="pill pill-cat">PASS</span></td>
+  <td>Passive</td>
+  <td class="num">1</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="idlist">PASS-01</td>
+</tr>
+<tr data-cat="STAT">
+  <td><span class="pill pill-cat">STAT</span></td>
+  <td>Tổng hợp chỉ số</td>
+  <td class="num">2</td>
+  <td class="num">2</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="num">1</td>
+  <td class="idlist">STAT-01, STAT-02</td>
+</tr>
+<tr data-cat="INV">
+  <td><span class="pill pill-cat">INV</span></td>
+  <td>Kho đồ (Inventory)</td>
+  <td class="num">5</td>
+  <td class="num">1</td>
+  <td class="num">4</td>
+  <td class="num">3</td>
+  <td class="num">0</td>
+  <td class="idlist">INV-01, INV-02, INV-03, INV-04, INV-05</td>
+</tr>
+<tr data-cat="EQ">
+  <td><span class="pill pill-cat">EQ</span></td>
+  <td>Trang bị (Equip)</td>
+  <td class="num">3</td>
+  <td class="num">1</td>
+  <td class="num">2</td>
+  <td class="num">2</td>
+  <td class="num">1</td>
+  <td class="idlist">EQ-01, EQ-02, EQ-03</td>
+</tr>
+<tr data-cat="BOX">
+  <td><span class="pill pill-cat">BOX</span></td>
+  <td>Rương (Chest)</td>
+  <td class="num">5</td>
+  <td class="num">0</td>
+  <td class="num">5</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="idlist">BOX-01, BOX-02, BOX-03, BOX-04, BOX-05</td>
+</tr>
+<tr data-cat="RUNE">
+  <td><span class="pill pill-cat">RUNE</span></td>
+  <td>Rune</td>
+  <td class="num">4</td>
+  <td class="num">3</td>
+  <td class="num">1</td>
+  <td class="num">1</td>
+  <td class="num">2</td>
+  <td class="idlist">RUNE-01, RUNE-02, RUNE-03, RUNE-04</td>
+</tr>
+<tr data-cat="PET">
+  <td><span class="pill pill-cat">PET</span></td>
+  <td>Pet</td>
+  <td class="num">3</td>
+  <td class="num">2</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="idlist">PET-01, PET-02, PET-03</td>
+</tr>
+<tr data-cat="WORLD">
+  <td><span class="pill pill-cat">WORLD</span></td>
+  <td>Bản đồ / Màn chơi (World)</td>
+  <td class="num">5</td>
+  <td class="num">2</td>
+  <td class="num">3</td>
+  <td class="num">0</td>
+  <td class="num">1</td>
+  <td class="idlist">WORLD-01, WORLD-02, WORLD-03, WORLD-04, WORLD-05</td>
+</tr>
+<tr data-cat="COMBAT">
+  <td><span class="pill pill-cat">COMBAT</span></td>
+  <td>Chiến đấu (Combat)</td>
+  <td class="num">6</td>
+  <td class="num">5</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="idlist">COMBAT-01, COMBAT-02, COMBAT-03, COMBAT-04, COMBAT-05, COMBAT-06</td>
+</tr>
+<tr data-cat="REWARD">
+  <td><span class="pill pill-cat">REWARD</span></td>
+  <td>Phần thưởng</td>
+  <td class="num">2</td>
+  <td class="num">2</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="idlist">REWARD-01, REWARD-02</td>
+</tr>
+<tr data-cat="CUBE">
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Cube (chế tác)</td>
+  <td class="num">11</td>
+  <td class="num">11</td>
+  <td class="num">0</td>
+  <td class="num">3</td>
+  <td class="num">1</td>
+  <td class="idlist">CUBE-01, CUBE-02, CUBE-03, CUBE-04, CUBE-05, CUBE-06, CUBE-07, CUBE-08, CUBE-09, CUBE-10, CUBE-11</td>
+</tr>
+<tr data-cat="CAT">
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Catalog / Công cụ</td>
+  <td class="num">11</td>
+  <td class="num">9</td>
+  <td class="num">2</td>
+  <td class="num">2</td>
+  <td class="num">2</td>
+  <td class="idlist">CAT-01, CAT-02, CAT-03, CAT-04, CAT-05, CAT-06, CAT-07, CAT-08, CAT-09, CAT-10, CAT-11</td>
+</tr>
+<tr data-cat="COMM">
+  <td><span class="pill pill-cat">COMM</span></td>
+  <td>Cộng đồng</td>
+  <td class="num">1</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="idlist">COMM-01</td>
+</tr>
+<tr data-cat="ACH">
+  <td><span class="pill pill-cat">ACH</span></td>
+  <td>Thành tựu</td>
+  <td class="num">2</td>
+  <td class="num">0</td>
+  <td class="num">2</td>
+  <td class="num">0</td>
+  <td class="num">1</td>
+  <td class="idlist">ACH-01, ACH-02</td>
+</tr>
+<tr data-cat="MKT">
+  <td><span class="pill pill-cat">MKT</span></td>
+  <td>Thị trường (Market)</td>
+  <td class="num">3</td>
+  <td class="num">0</td>
+  <td class="num">3</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="idlist">MKT-01, MKT-02, MKT-03</td>
+</tr>
+<tr data-cat="COS">
+  <td><span class="pill pill-cat">COS</span></td>
+  <td>Trang phục (Cosmetic)</td>
+  <td class="num">2</td>
+  <td class="num">1</td>
+  <td class="num">1</td>
+  <td class="num">0</td>
+  <td class="num">0</td>
+  <td class="idlist">COS-01, COS-02</td>
+</tr>
+        </tbody>
+      </table>
+    </div>
+
+    <details class="appendix">
+      <summary>Xem đủ 80 dòng — chi tiết từng năng lực (T1-T5 + lý do chặn hiện tại)</summary>
+      <div class="filter-bar">
+        <label for="t1-filter">Trạng thái T1:</label>
+        <select id="t1-filter">
+          <option value="ALL">Tất cả</option>
+          <option value="P">P — Có authority nguồn</option>
+          <option value="B">B — Yếu hoặc bị chặn</option>
+        </select>
+        <span class="filter-count" id="matrix-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="wide" id="full-matrix-table">
+          <thead><tr>
+            <th>ID</th><th>Nhóm</th><th>Tiêu chí chấp nhận</th>
+            <th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>Chặn đầu tiên / hiện trạng</th>
+          </tr></thead>
+          <tbody>
+<tr data-cat="FND" data-t1="B">
+  <td class="mono">FND-01</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Tạo người chơi mới với roster/tài nguyên/đội hình khởi tạo đúng chuẩn, đúng một lần.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-OPEN; thiếu bằng chứng chuyển trạng thái Taskbar chính xác + T4 slash-root.</td>
+</tr>
+<tr data-cat="FND" data-t1="B">
+  <td class="mono">FND-02</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Tải lại người chơi cũ với đầy đủ trạng thái + revision nguyên vẹn.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-OPEN; save/reopen đã cài, thiếu fixture xác thực Taskbar + T4.</td>
+</tr>
+<tr data-cat="FND" data-t1="B">
+  <td class="mono">FND-03</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Mở khoá 1 hero hợp lệ, trừ đúng phí một lần, khởi tạo trạng thái đầy đủ.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Bị oracle chặn tường minh — mua bán đang vô hiệu hoá (D-GATE).</td>
+</tr>
+<tr data-cat="FND" data-t1="B">
+  <td class="mono">FND-04</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Triển khai hero đã mở khoá vào 1 ô đội hình và lưu lại.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Đội hình chỉ đọc, mutation bị oracle chặn (D-GATE).</td>
+</tr>
+<tr data-cat="FND" data-t1="B">
+  <td class="mono">FND-05</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Sắp xếp lại hero đã triển khai, tôn trọng cooldown chính chuẩn.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case/control.</td>
+</tr>
+<tr data-cat="FND" data-t1="B">
+  <td class="mono">FND-06</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Nâng cấp Rune ô đội hình, mở thêm đúng 1 ô dùng được.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Rune mutation chỉ hỗ trợ hiệu ứng Alchemy; hiệu ứng đội hình cấu trúc còn thiếu.</td>
+</tr>
+<tr data-cat="FND" data-t1="P">
+  <td class="mono">FND-07</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Cộng EXP hero qua cấp 1-100, giữ đúng hành vi overflow/kết thúc.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Catalog/domain có; thiếu persistence/đường Discord cho EXP hero.</td>
+</tr>
+<tr data-cat="FND" data-t1="P">
+  <td class="mono">FND-08</td>
+  <td><span class="pill pill-cat">FND</span></td>
+  <td>Quyết toán vàng/EXP ngoại tuyến (capped) đúng một lần theo đồng hồ + Rune.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chiếu offline chỉ đọc/fail-closed; thiếu use case quyết toán.</td>
+</tr>
+<tr data-cat="HERO" data-t1="P">
+  <td class="mono">HERO-01</td>
+  <td><span class="pill pill-cat">HERO</span></td>
+  <td>Duyệt + xem chi tiết cả 6 hero với danh tính/lớp/vũ khí/chỉ số gốc.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-READ tồn tại; thiếu T4 slash-root.</td>
+</tr>
+<tr data-cat="ATTR" data-t1="P">
+  <td class="mono">ATTR-01</td>
+  <td><span class="pill pill-cat">ATTR</span></td>
+  <td>Duyệt cây Thuộc tính 1 hero với nhóm/gate/chi phí/cấp/liên kết skill-passive.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-READ tồn tại; thiếu T4.</td>
+</tr>
+<tr data-cat="ATTR" data-t1="B">
+  <td class="mono">ATTR-02</td>
+  <td><span class="pill pill-cat">ATTR</span></td>
+  <td>Phân bổ 1 điểm Thuộc tính hợp lệ, trừ ngân sách 1 lần, từ chối khoá/max/thiếu điểm.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-ATTR; thiếu authority chuyển trạng thái Taskbar + T4.</td>
+</tr>
+<tr data-cat="ATTR" data-t1="B">
+  <td class="mono">ATTR-03</td>
+  <td><span class="pill pill-cat">ATTR</span></td>
+  <td>Reset/rút 1 node Thuộc tính đã đầu tư, hoàn điểm, hạ đồng bộ skill/passive liên quan.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chính sách hiện tại cấm hồi quy (invariants.ts:600-621); chưa có fixture/use case/control.</td>
+</tr>
+<tr data-cat="SKILL" data-t1="P">
+  <td class="mono">SKILL-01</td>
+  <td><span class="pill pill-cat">SKILL</span></td>
+  <td>Mở khoá đúng skill chủ động gắn với node Thuộc tính đã đạt.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có trình duyệt nguồn skill; thiếu transition/ownership mở khoá.</td>
+</tr>
+<tr data-cat="SKILL" data-t1="B">
+  <td class="mono">SKILL-02</td>
+  <td><span class="pill pill-cat">SKILL</span></td>
+  <td>Trang bị/gỡ/hoán đổi 1 skill chủ động đã mở khoá vào 1 ô khả dụng.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case/control loadout.</td>
+</tr>
+<tr data-cat="PASS" data-t1="P">
+  <td class="mono">PASS-01</td>
+  <td><span class="pill pill-cat">PASS</span></td>
+  <td>Áp dụng đúng modifier passive đã mở khoá ở tầng cộng dồn passive.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có topology nguồn passive; đường dẫn stat/combat tiêu thụ còn thiếu.</td>
+</tr>
+<tr data-cat="STAT" data-t1="P">
+  <td class="mono">STAT-01</td>
+  <td><span class="pill pill-cat">STAT</span></td>
+  <td>Suy ra chỉ số theo đúng thứ tự tầng: gốc, vật phẩm, thuộc tính, passive, account, trạng thái, buff/skill, môi trường.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có các chiếu riêng lẻ; chưa có bộ tổng hợp production hoàn chỉnh.</td>
+</tr>
+<tr data-cat="STAT" data-t1="P">
+  <td class="mono">STAT-02</td>
+  <td><span class="pill pill-cat">STAT</span></td>
+  <td>Hiển thị preview tấn công/DPS/phòng thủ có giới hạn, đúng đơn vị + phạm vi tường minh.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Hero UI chỉ có DPS/tấn công cơ bản + preview Thuộc tính thô riêng biệt, chưa đủ phòng thủ/hiệu dụng (D-GATE).</td>
+</tr>
+<tr data-cat="INV" data-t1="P">
+  <td class="mono">INV-01</td>
+  <td><span class="pill pill-cat">INV</span></td>
+  <td>Duyệt/lọc/phân trang kho đồ, xem đúng danh tính/phẩm/cấp/loại/dữ liệu roll.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Bao phủ emitted-control mạnh trong D-EQUIP; bootstrap slash bị bỏ qua.</td>
+</tr>
+<tr data-cat="INV" data-t1="B">
+  <td class="mono">INV-02</td>
+  <td><span class="pill pill-cat">INV</span></td>
+  <td>Chuyển 1 vật phẩm hợp lệ giữa kho và rương mà không mất danh tính/số lượng.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có duyệt container; thiếu transition/control di chuyển.</td>
+</tr>
+<tr data-cat="INV" data-t1="B">
+  <td class="mono">INV-03</td>
+  <td><span class="pill pill-cat">INV</span></td>
+  <td>Khoá/mở khoá 1 vật phẩm, ngăn dùng Cube phá huỷ khi đang khoá.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Invariant có thể từ chối vật đã trang bị/giữ chỗ; thiếu action/state khoá của người chơi.</td>
+</tr>
+<tr data-cat="INV" data-t1="B">
+  <td class="mono">INV-04</td>
+  <td><span class="pill pill-cat">INV</span></td>
+  <td>Mua ô kho tiếp theo đúng giá theo chỉ số, một lần.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-CONT; thiếu authority chuyển trạng thái Taskbar + T4.</td>
+</tr>
+<tr data-cat="INV" data-t1="B">
+  <td class="mono">INV-05</td>
+  <td><span class="pill pill-cat">INV</span></td>
+  <td>Mua ô rương/kho chứa tiếp theo đúng giá theo chỉ số, một lần.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-CONT; thiếu authority Taskbar + T4.</td>
+</tr>
+<tr data-cat="EQ" data-t1="B">
+  <td class="mono">EQ-01</td>
+  <td><span class="pill pill-cat">EQ</span></td>
+  <td>Trang bị đúng 1 gear tương thích vào 1 ô hero, không nhân bản.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-EQUIP; bao phủ SQLite handler mạnh, thiếu T1/T4.</td>
+</tr>
+<tr data-cat="EQ" data-t1="B">
+  <td class="mono">EQ-02</td>
+  <td><span class="pill pill-cat">EQ</span></td>
+  <td>Gỡ trang bị đúng 1 instance vào 1 ô kho trống, không nhân bản.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-EQUIP; bao phủ SQLite handler mạnh, thiếu T1/T4.</td>
+</tr>
+<tr data-cat="EQ" data-t1="P">
+  <td class="mono">EQ-03</td>
+  <td><span class="pill pill-cat">EQ</span></td>
+  <td>Áp dụng modifier gốc/nội tại/độc nhất/khắc lên chỉ số hiệu dụng.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Item Effects chỉ đọc/nguồn gốc; áp dụng chỉ số hoàn chỉnh còn thiếu.</td>
+</tr>
+<tr data-cat="BOX" data-t1="B">
+  <td class="mono">BOX-01</td>
+  <td><span class="pill pill-cat">BOX</span></td>
+  <td>Mở 1 rương thường, tiêu thụ 1 lần, trao thưởng theo trọng số chính chuẩn.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case/control rương.</td>
+</tr>
+<tr data-cat="BOX" data-t1="B">
+  <td class="mono">BOX-02</td>
+  <td><span class="pill pill-cat">BOX</span></td>
+  <td>Mở 1 rương boss màn, tiêu thụ 1 lần, trao thưởng theo trọng số.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case/control rương.</td>
+</tr>
+<tr data-cat="BOX" data-t1="B">
+  <td class="mono">BOX-03</td>
+  <td><span class="pill pill-cat">BOX</span></td>
+  <td>Mở 1 rương boss màn lớn, tiêu Soulstone/rương cần thiết 1 lần, trao thưởng.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case Soulstone/rương.</td>
+</tr>
+<tr data-cat="BOX" data-t1="B">
+  <td class="mono">BOX-04</td>
+  <td><span class="pill pill-cat">BOX</span></td>
+  <td>Thực thi đúng hành vi giới hạn/tràn dung lượng rương từ Rune sở hữu.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Hành vi dung lượng cấu trúc từ Rune còn thiếu.</td>
+</tr>
+<tr data-cat="BOX" data-t1="B">
+  <td class="mono">BOX-05</td>
+  <td><span class="pill pill-cat">BOX</span></td>
+  <td>Tự động mở rương thường/boss theo lịch cooldown do Rune quyết định.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chưa có tự động hoá mở rương theo lịch.</td>
+</tr>
+<tr data-cat="RUNE" data-t1="P">
+  <td class="mono">RUNE-01</td>
+  <td><span class="pill pill-cat">RUNE</span></td>
+  <td>Duyệt toàn bộ đồ thị Rune: điều kiện tiên quyết, cấp, tối đa, chi phí, liên kết, hiệu ứng.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-READ tồn tại; thiếu T4.</td>
+</tr>
+<tr data-cat="RUNE" data-t1="B">
+  <td class="mono">RUNE-02</td>
+  <td><span class="pill pill-cat">RUNE</span></td>
+  <td>Nâng cấp 1 Rune hợp lệ đúng chi phí/gate, từ chối khi max/thiếu điều kiện.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-RUNE cố ý chỉ hỗ trợ hiệu ứng mà Alchemy tiêu thụ được.</td>
+</tr>
+<tr data-cat="RUNE" data-t1="P">
+  <td class="mono">RUNE-03</td>
+  <td><span class="pill pill-cat">RUNE</span></td>
+  <td>Áp dụng cấp Rune sở hữu vào mọi bên tiêu thụ: chỉ số/kinh tế/rơi đồ/offline/Cube.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ tồn tại tập con tiêu thụ qua Alchemy; các bên tiêu thụ toàn cục còn thiếu.</td>
+</tr>
+<tr data-cat="RUNE" data-t1="P">
+  <td class="mono">RUNE-04</td>
+  <td><span class="pill pill-cat">RUNE</span></td>
+  <td>Áp dụng hành vi cấu trúc đội hình/ô skill/kho/rương từ Rune sở hữu.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có đường tiêu thụ cấu trúc.</td>
+</tr>
+<tr data-cat="PET" data-t1="P">
+  <td class="mono">PET-01</td>
+  <td><span class="pill pill-cat">PET</span></td>
+  <td>Mở khoá 1 pet đúng một lần tại ngưỡng số quái đã giết chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có trình duyệt bộ sưu tập; thiếu transition mở khoá.</td>
+</tr>
+<tr data-cat="PET" data-t1="B">
+  <td class="mono">PET-02</td>
+  <td><span class="pill pill-cat">PET</span></td>
+  <td>Sắp xếp 1 pet đã mở khoá, chỉ lưu đúng trường sắp xếp qua reload.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Bị oracle runtime chặn tường minh; không có mutation.</td>
+</tr>
+<tr data-cat="PET" data-t1="P">
+  <td class="mono">PET-03</td>
+  <td><span class="pill pill-cat">PET</span></td>
+  <td>Áp dụng chỉ số passive của mọi pet đã mở khoá, độc lập với cách sắp xếp hiển thị.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Domain pet-effects là orphan sản xuất (D-ORPHAN).</td>
+</tr>
+<tr data-cat="WORLD" data-t1="B">
+  <td class="mono">WORLD-01</td>
+  <td><span class="pill pill-cat">WORLD</span></td>
+  <td>Chọn 1 màn hợp lệ, dịch chuyển nhanh tới đó, hiện ngữ cảnh vùng/cấp độ.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Toàn bộ 120 màn chỉ duyệt được; mutation di chuyển/trạng thái còn thiếu (D-GATE).</td>
+</tr>
+<tr data-cat="WORLD" data-t1="P">
+  <td class="mono">WORLD-02</td>
+  <td><span class="pill pill-cat">WORLD</span></td>
+  <td>Bắt đầu 1 màn với số đợt/độ lớn đợt/quái/boss đã cấu hình.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">simulateCampaignStage luôn oracle-chặn trước khi bắt đầu.</td>
+</tr>
+<tr data-cat="WORLD" data-t1="P">
+  <td class="mono">WORLD-03</td>
+  <td><span class="pill pill-cat">WORLD</span></td>
+  <td>Trao thưởng boss/first-clear/rương/Soulstone đúng một lần.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ preview (D-GATE).</td>
+</tr>
+<tr data-cat="WORLD" data-t1="B">
+  <td class="mono">WORLD-04</td>
+  <td><span class="pill pill-cat">WORLD</span></td>
+  <td>Lưu tiến trình clear, mở đúng màn/độ khó kế tiếp duy nhất.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Bị chặn tường minh bởi oracle campaign-save (campaign-save-delta-discovery.ts).</td>
+</tr>
+<tr data-cat="WORLD" data-t1="B">
+  <td class="mono">WORLD-05</td>
+  <td><span class="pill pill-cat">WORLD</span></td>
+  <td>Cho phép Retry khi bật, ngược lại rơi về màn trước đó có thể clear được.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có transition thất bại/phiên màn.</td>
+</tr>
+<tr data-cat="COMBAT" data-t1="P">
+  <td class="mono">COMBAT-01</td>
+  <td><span class="pill pill-cat">COMBAT</span></td>
+  <td>Tự động tấn công cơ bản theo nhịp suy ra từ tốc độ đánh chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chiếu DPS cơ bản không phải vòng lặp tấn công sống; domain combat không có consumer lệnh.</td>
+</tr>
+<tr data-cat="COMBAT" data-t1="P">
+  <td class="mono">COMBAT-02</td>
+  <td><span class="pill pill-cat">COMBAT</span></td>
+  <td>Kích hoạt skill đã trang bị theo luật hào quang/số đòn cơ bản/cooldown/tốc độ cast.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">executeSourceSkill luôn ném yêu cầu oracle.</td>
+</tr>
+<tr data-cat="COMBAT" data-t1="P">
+  <td class="mono">COMBAT-03</td>
+  <td><span class="pill pill-cat">COMBAT</span></td>
+  <td>Tính sát thương ra đi, roll/hệ số chí mạng, cách truyền và nguyên tố chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Công thức stat/combat cô lập, chưa nối vào gameplay runtime.</td>
+</tr>
+<tr data-cat="COMBAT" data-t1="P">
+  <td class="mono">COMBAT-04</td>
+  <td><span class="pill pill-cat">COMBAT</span></td>
+  <td>Tính né/đỡ/kháng/giáp/giảm/hấp thụ/sàn sát thương vào đúng thứ tự.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">domain/combat.ts chỉ test/domain, là orphan từ Discord (D-ORPHAN).</td>
+</tr>
+<tr data-cat="COMBAT" data-t1="P">
+  <td class="mono">COMBAT-05</td>
+  <td><span class="pill pill-cat">COMBAT</span></td>
+  <td>Áp dụng/hết hạn Buff, debuff và cả 6 trạng thái một cách xác định.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có topology nguồn; thiếu động cơ trạng thái runtime/vòng lặp Discord.</td>
+</tr>
+<tr data-cat="COMBAT" data-t1="B">
+  <td class="mono">COMBAT-06</td>
+  <td><span class="pill pill-cat">COMBAT</span></td>
+  <td>Khi hero chết, chạy đúng vòng đời chết/hồi sinh + cooldown chính chuẩn.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chưa có transition chết/hồi sinh; thay thế tạm thời đã nằm ở FND-04.</td>
+</tr>
+<tr data-cat="REWARD" data-t1="P">
+  <td class="mono">REWARD-01</td>
+  <td><span class="pill pill-cat">REWARD</span></td>
+  <td>Cộng vàng/EXP từ giết/dọn màn hợp lệ theo hệ số chính chuẩn, đúng một lần.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">World chỉ xuất preview; chưa có use case trao thưởng.</td>
+</tr>
+<tr data-cat="REWARD" data-t1="P">
+  <td class="mono">REWARD-02</td>
+  <td><span class="pill pill-cat">REWARD</span></td>
+  <td>Roll rơi đồ/rương theo tỉ lệ phần nghìn, trọng số, gate Hero, hệ số Rune.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có chiếu rơi đồ; thiếu mutation trao thưởng/vòng phiên.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-01</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Mở khoá 1 thao tác Cube chính hợp lệ đúng cấp/chi phí, một lần.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-CUBE; thiếu T4.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-02</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Mở khoá 1 công thức phụ/tier Cube hợp lệ đúng điều kiện/cấp/chi phí, một lần.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-CUBE; thiếu T4.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-03</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Cộng đúng EXP Cube/hệ số nhân/thưởng và tiến trình cấp cho vật phẩm tiêu thụ.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Đường Alchemy tiến triển Cube; các thao tác tiêu thụ khác còn thiếu.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-04</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Tổng hợp 9 vật phẩm hợp lệ cùng phẩm/loại thành 1 kết quả chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ có hàm domain + trình duyệt orphan (D-ORPHAN).</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-05</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Luyện kim 1-9 vật phẩm hợp lệ thành đúng vàng/EXP Cube, từ chối khoá/giữ chỗ/đã trang bị.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-ALCH; test SQLite handler mạnh, chưa có T4 slash-root.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-06</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Chế tạo 1 công thức đã chọn từ đúng nguyên liệu thành 1 kết quả gear chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Hàm domain/trình duyệt là orphan sản xuất.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-07</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Trang trí 1 ô mở tương thích bằng 1 nguyên liệu + chỉ số ngẫu nhiên chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ có domain; không có use case/control.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-08</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Khắc 1 ô mở tương thích bằng 1 nguyên liệu + chỉ số ngẫu nhiên chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ có domain; không có use case/control.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-09</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Khắc chữ 1 ô mở tương thích bằng 1 nguyên liệu + chỉ số cao cấp chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ có domain; không có use case/control.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-10</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Trích xuất 1 chỉ số đã áp, trừ đúng vàng, mở lại ô mà không hoàn trả.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ có hàm domain + trình duyệt orphan.</td>
+</tr>
+<tr data-cat="CUBE" data-t1="P">
+  <td class="mono">CUBE-11</td>
+  <td><span class="pill pill-cat">CUBE</span></td>
+  <td>Cúng 1 đồng xu + đúng vàng, tạo 1 kết quả theo trọng số chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chỉ có domain; không có use case/control.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-01</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Tìm kiếm/lọc/phân trang bản ghi catalog chính chuẩn, không sót/không trùng.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Codex phân trang mọi dataset/dòng; ý định tìm kiếm/lọc tổng quát chưa production-reachable.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-02</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Mở 1 bản ghi catalog với danh tính bản địa hoá, sự kiện chính chuẩn, quan hệ, nguồn gốc.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-READ (Codex record/detail/export); thiếu T4.</td>
+</tr>
+<tr data-cat="CAT" data-t1="B">
+  <td class="mono">CAT-03</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Hiện + lưu bộ sưu tập sở hữu/khám phá tách biệt khỏi tư cách thành viên nguồn.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Duyệt Pets/Skins/Achievements có; transition khám phá/tiến trình hoàn chỉnh thì không (không có fixture authority).</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-04</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Tìm mọi nguồn màn/rương cho 1 vật phẩm và mọi thưởng trong 1 bảng màn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Codex thô có thể xuất dòng; chưa có trải nghiệm truy vấn nguồn rơi đồ production.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-05</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Chạy tính toán sát thương nhận chính chuẩn từ giá trị màn/quái/phòng thủ hoặc save.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Công thức combat chưa là máy tính Discord production.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-06</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Xếp hạng hiệu quả nạp Cube/tiến trình cấp kế tiếp theo khớp cấp chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case/control lập kế hoạch.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-07</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Xếp hạng màn farming theo cấp, thưởng, độ khó, thời gian dọn đo được.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case/control lập kế hoạch farming.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-08</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Xếp hạng gear tốt nhất-cho-1-ô (BiS) cho 1 Hero/mục tiêu, hiện đúng lợi ích từ save + giới hạn mô hình.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chưa có trải nghiệm BiS trên Discord.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-09</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Định giá mọi vật phẩm sở hữu theo giá thị trường có dấu thời gian, không trình bày dữ liệu cũ như đang sống.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chưa có trải nghiệm Định giá Kho trên Discord.</td>
+</tr>
+<tr data-cat="CAT" data-t1="P">
+  <td class="mono">CAT-10</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Duyệt mọi dataset thô đã ghim với phiên bản, danh tính schema/dòng, nguồn gốc ổn định.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">D-READ (Codex đọc/xuất); thiếu T4 slash-root.</td>
+</tr>
+<tr data-cat="CAT" data-t1="B">
+  <td class="mono">CAT-11</td>
+  <td><span class="pill pill-cat">CAT</span></td>
+  <td>Tải/giải mã 1 save cục bộ, xem roster/gear/tiến trình mà không upload.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chưa có đường nhập/kiểm tra save trên Discord; bề mặt Taskbar còn &#x27;đang xây&#x27; vẫn tính vào mẫu số.</td>
+</tr>
+<tr data-cat="COMM" data-t1="P">
+  <td class="mono">COMM-01</td>
+  <td><span class="pill pill-cat">COMM</span></td>
+  <td>Duyệt build/hướng dẫn/tier list cộng đồng có dấu thời gian + nguồn gốc, tách biệt rõ khỏi cơ chế chính thức.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Danh sách/chi tiết/chunk/xuất Cộng đồng production tồn tại (D-READ); thiếu T4.</td>
+</tr>
+<tr data-cat="ACH" data-t1="B">
+  <td class="mono">ACH-01</td>
+  <td><span class="pill pill-cat">ACH</span></td>
+  <td>Mở khoá/lưu mỗi thành tựu đúng một lần từ đúng sự kiện gameplay khớp.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Bản ghi đã ghi nhận chỉ duyệt được; chưa có use case sự kiện/tiến trình.</td>
+</tr>
+<tr data-cat="ACH" data-t1="B">
+  <td class="mono">ACH-02</td>
+  <td><span class="pill pill-cat">ACH</span></td>
+  <td>Duyệt yêu cầu + tiến trình cục bộ, tách biệt khỏi tỉ lệ toàn cục có dấu thời gian.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-w">△</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Chi tiết Thành tựu đã ghi nhận có thể xem; mô hình kích hoạt/tiến trình cục bộ còn thiếu.</td>
+</tr>
+<tr data-cat="MKT" data-t1="B">
+  <td class="mono">MKT-01</td>
+  <td><span class="pill pill-cat">MKT</span></td>
+  <td>Duyệt giá/khối lượng/chênh lệch/xu hướng/độ tươi mà không trình bày dữ liệu snapshot như đang sống.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Market chỉ đọc có nguồn gốc đã production; thiếu T1/T4.</td>
+</tr>
+<tr data-cat="MKT" data-t1="B">
+  <td class="mono">MKT-02</td>
+  <td><span class="pill pill-cat">MKT</span></td>
+  <td>Gửi đúng 1 gear đã tước bỏ tới Trade Ship trong game, đúng một lần.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Quyết toán trực tiếp bị vô hiệu hoá tường minh; không có mutation.</td>
+</tr>
+<tr data-cat="MKT" data-t1="B">
+  <td class="mono">MKT-03</td>
+  <td><span class="pill pill-cat">MKT</span></td>
+  <td>Làm mới hộp thư và nhận lại mỗi vật phẩm đã mua/hết hạn đúng một lần.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Không có use case quyết toán hộp thư.</td>
+</tr>
+<tr data-cat="COS" data-t1="P">
+  <td class="mono">COS-01</td>
+  <td><span class="pill pill-cat">COS</span></td>
+  <td>Mở khoá/mua 1 phần trang phục tương thích theo luật mặc định/chi phí chính chuẩn.</td>
+  <td class="center"><span class="chip chip-p">P</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có duyệt catalog trang phục; transition sở hữu còn thiếu.</td>
+</tr>
+<tr data-cat="COS" data-t1="B">
+  <td class="mono">COS-02</td>
+  <td><span class="pill pill-cat">COS</span></td>
+  <td>Trang bị 1 phần trang phục tương thích độc lập với chỉ số combat, và lưu lại.</td>
+  <td class="center"><span class="chip chip-b">B</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="center"><span class="chip chip-f">F</span></td>
+  <td class="small">Có duyệt catalog trang phục; transition trang bị còn thiếu.</td>
+</tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small">Nguồn: <code>/tmp/discordhero-phase1-4-audit.d1quq6/02-capability-matrix.md</code>
+        (SHA-256 <code>ed74a4ae…f79</code>, xác minh khớp <code>SHA256SUMS.txt</code> ngay trong phiên viết báo
+        cáo này). Trong ma trận đóng băng này, T4 và T5 là <code>F</code> cho cả 80 dòng; các review mới chưa
+        được phép tự sửa điểm cho tới khi artifact T1–T5 được tái sinh và ký attestation.</p>
+    </details>
+
+    <h2 id="vong-lap-loi">Khoảng trống vòng lặp lõi &amp; kết luận Phase 1-4</h2>
+    <p>
+      Kiểm toán liệt kê rõ danh sách năng lực bắt buộc phải qua để vòng lặp lõi được coi là tồn tại, bất kể phần
+      trăm tổng thể:
+    </p>
+    <ol>
+      <li>Onboard/mở lại/triển khai: <code>FND-01</code>, <code>FND-02</code>, <code>FND-04</code></li>
+      <li>Vòng đời màn chơi: <code>WORLD-01</code>, <code>WORLD-02</code>, <code>WORLD-04</code>, <code>WORLD-05</code></li>
+      <li>Chiến đấu &amp; thưởng: <code>COMBAT-01…06</code>, <code>REWARD-01…02</code>, <code>WORLD-03</code></li>
+      <li>Ảnh hưởng lên sức mạnh: <code>INV-01</code>, <code>EQ-01…03</code>, <code>ATTR-02…03</code>,
+        <code>SKILL-02</code>, <code>PASS-01</code>, <code>RUNE-02…04</code></li>
+      <li>Tiến triển kinh tế: <code>CUBE-03…06</code></li>
+      <li>Mọi mutation phải owner-bound, revision-CAS/idempotent, sống sót qua restart, không nhân bản phần
+        thưởng dưới interaction cũ/replay</li>
+    </ol>
+    <div class="callout danger">
+      <strong>Defect đội hình đã được tái hiện; kiến trúc sửa đã hoàn tất nhưng chưa triển khai</strong>
+      <code>createFreshPlayerStateFromCatalog</code> tự triển khai cả ba starter
+      (<code>domain/invariants.ts:896-936</code>). Nguồn TaskbarHero lại mô tả người chơi chọn đúng một class
+      đầu tiên (<code>guides/task-bar-hero-101.md:40-44</code>) và hai Rune mở hai slot còn lại
+      (<code>:181-185</code>). Trạng thái fresh hiện tại vì vậy bỏ qua toàn bộ tiến trình mở hai slot trị giá
+      tổng cộng 151.000 gold. Báo cáo kiến trúc SHA-256 <code>619f8fb8…aa005</code> đã chốt một initial
+      deployment, base slot 1 và hai nguồn <code>+1/+1</code>; Option A vẫn cần user duyệt trước strict-TDD và
+      chưa có fix production.
+    </div>
+    <div class="callout warn">
+      <strong>Kiến trúc StageBox T2 đã sẵn sàng; vòng lặp vẫn chưa chơi được</strong>
+      Báo cáo SHA-256 <code>4b5b4f95…3c603</code> đã hoàn tất StageBox deterministic T2 ở mức thiết kế và ghi
+      rõ <code>READY FOR STRICT-TDD PHASE 5, NOT APPROVED</code>. Các chuyển trạng thái
+      <code>start</code>, <code>advance</code> và <code>collect</code> vẫn chưa được triển khai/attest. Một
+      <code>resolveWave</code> tổng quát vẫn phải fail-closed vì cadence, target selection, status duration
+      và resurrection còn oracle-gated. Slice strict-TDD nhỏ nhất và đúng authority tiếp theo là
+      <strong>starter-selection core</strong>: chọn đúng một starter, giữ hai slot khóa, rồi chứng minh unlock
+      từng slot bằng Rune. Combat chỉ nên bắt đầu bằng primitive 1v1 base-attack hẹp sau khi contract này ổn định.
+    </div>
+    <h3>Các cổng khuyến nghị tiếp theo (theo thứ tự phụ thuộc trong <code>03-e2e-simulator-architecture.md</code>)</h3>
+    <ol>
+      <li>Nền tảng simulator + tạo/mở lại slash thật (đã APPROVE cho mock-protocol; live Discord vẫn tách riêng).</li>
+      <li>Toàn bộ bề mặt đọc hiện có qua emitted-control thật (Home, Heroes/Attributes, Inventory/Item Effects,
+        Runes/Skills, Cube, World preview, Collection, Codex/Community, Market).</li>
+      <li>Toàn bộ 7 họ mutation hiện có (Attribute, dung lượng container, mở khoá Cube, Alchemy, equip, unequip,
+        nâng cấp Rune).</li>
+      <li>Duyệt Option A rồi strict-TDD starter-selection core: một starter được chọn, hai slot còn lại mở bằng
+        đúng hai Rune nguồn.</li>
+      <li>Sau đó mới thiết kế session checkpoint hẹp; <code>resolveWave</code> tổng quát giữ oracle gate cho
+        cadence/target/status/resurrection.</li>
+      <li>Thưởng/rơi đồ/first-clear/thu thập, mở khoá chiến dịch, quyết toán offline, thành tựu.</li>
+      <li>Chế tạo, Tổng hợp, Trang trí, Khắc, Khắc chữ, Trích xuất, Cúng.</li>
+      <li>Pet, mọi bên tiêu thụ Rune còn lại, loadout skill/passive, tổng hợp chỉ số hiệu dụng.</li>
+      <li>Di chuyển/khoá kho đồ, rương, trang phục, trải nghiệm nguồn/kế hoạch, mọi giao dịch thị trường trong
+        game đã được cho phép.</li>
+    </ol>
+    <p class="small">Dashboard chỉ được vượt 90% khi: ≥72/80 dòng qua đủ 5 tầng, MỌI dòng vòng lặp lõi qua, mọi
+      test adversarial mutation qua, artifact được sinh tự động ổn định qua nhiều lần chạy, và một reviewer bên
+      ngoài (không phải tác giả) ký attestation khớp hash — theo đúng công thức trong
+      <code>04-parity-dashboard-schema.json</code> (<code>x-generation-contract.releaseFormula</code>).</p>
+
+    <h2 id="tac-nhan">Tác nhân &amp; kỷ luật vận hành</h2>
+    <p>
+      Trạng thái agent/terminal thay đổi nhanh hơn nội dung báo cáo. Vì vậy snapshot 11:27 chỉ ghi kết quả
+      có report/hash được cung cấp; báo cáo không biến số “đang chạy” thành chỉ số tiến độ. Nội dung terminal thô
+      (spinner/token counter) được lược bỏ.
+    </p>
+    <p>
+      <strong>Kỷ luật dọn terminal:</strong> worker rảnh (đã <code>worker_done</code>) được đóng hoặc tái sử dụng
+      thay vì để treo. Chỉ giữ terminal khi nó còn task thật sự đang chạy hoặc đang chờ dependency rõ ràng.
+    </p>
+    <h3>Snapshot cấp sản phẩm: lane đã đóng và cổng còn mở</h3>
+    <ul>
+      <li>Materials/Extraction authority — APPROVE HIGH trên năm exact hashes hiện tại; author handoff không được
+        trình bày như independent review.</li>
+      <li>Item Effects recovery — APPROVE HIGH trên bốn exact hashes hiện tại; recovery/stale slice đã đóng theo
+        status chương trình.</li>
+      <li>Starter selection / formation — kiến trúc Option A hoàn tất; chờ user duyệt rồi mới strict-TDD.</li>
+      <li>StageBox T2 — kiến trúc deterministic hoàn tất; Phase 5 strict-TDD và T3–T5 chưa triển khai.</li>
+      <li>Critical combat loop — kiến trúc tổng quát chưa được phép triển khai do oracle còn mở.</li>
+      <li><code>start</code>/<code>advance</code>/<code>collect</code> — chưa có attestation end-to-end.</li>
+      <li>Live Discord smoke — UNVERIFIED và chỉ được chạy sau uỷ quyền tường minh.</li>
+    </ul>
+
+    <h2 id="bang-chung">Bằng chứng cụ thể</h2>
+    <p>Năm loại bằng chứng dùng xuyên suốt báo cáo, không lẫn vào nhau:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Loại</th><th>Ý nghĩa</th><th>Ví dụ trong chương trình này</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Focused</strong></td><td>Chạy đúng file/module liên quan</td>
+            <td><code>bun test src/discord-hero/domain/combat.test.ts</code> → 55/55 focused; pack neighbor 72/72</td></tr>
+          <tr><td><strong>Global</strong></td><td>Toàn repo: typecheck, format, suite đầy đủ</td>
+            <td>Combat, Item Effects, Materials và Slash reports đều ghi global TypeScript exit 0; Materials
+              handoff ghi rõ không chạy toàn bộ <code>bun test</code>, nên không suy diễn thành full-suite green.</td></tr>
+          <tr><td><strong>Behavioral (mutation)</strong></td><td>Sửa 1 dòng production, xem test có "giết"
+            được mutant không</td>
+            <td>Combat: mọi mutant không tương đương đều bị giết, hai survivor được chứng minh tương đương bằng
+              proof + differential fuzz; Item Effects: 6/6 exact-source mutant bị giết; Materials: 11 mutant
+              authority-construction bị giết.</td></tr>
+          <tr><td><strong>Release (artifact)</strong></td><td>Manifest sinh tự động, hash-bound, có chữ ký
+            reviewer độc lập (T5)</td>
+            <td>Chưa tồn tại — schema đã định nghĩa (<code>04-parity-dashboard-schema.json</code>) nhưng chưa có
+              lần sinh nào</td></tr>
+          <tr><td><strong>Live</strong></td><td>Discord thật, hash deploy thật, dữ liệu production</td>
+            <td>UNVERIFIED — chưa được uỷ quyền, không có mutation mạng nào xảy ra</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Hash tự xác minh trong phiên viết báo cáo này (HIGH — vừa đọc trực tiếp bằng <code>shasum -a 256</code>)</h3>
+    <div class="code-block">
+      <pre><code>f3dcceed5ca2befca3921907d5b33261358d7822526f1f5dcbd5017b3ae3eac4  src/commands/discordhero.ts
+a42984496338a2801eedc2dbc02758e165931fa0d573458276029848e3e634ba  src/commands/discordhero.test.ts
+7dfcc5a7c52ac6fd7459c7f7db314c9490177bbf917e56735a939c4fd53ea309  src/commands/discordhero.e2e.test.ts
+81337fb44420a8bd6d795af48fbfe7010d964a440dd906a084b76a1a64b462ce  src/commands/discordhero.e2e-testkit.ts
+6ca05763cd12d0c0e0fc9b4e6d1f30751361fde0c98771b62f42606b8f143318  src/commands/discordhero.e2e-testkit.test.ts
+e4287190f64220833e2db1921c1bb1733c05d8338e202abcb16e762fe7aff1ee  src/discord-hero/domain/combat.ts
+b13ba875c79cb10519ef884535f76a0e688a9a1baaf02ee16940bc8e2fa7bfb7  src/discord-hero/domain/combat.test.ts
+81220916b122b95bdd9719f5f19e2c5ff92605a8eef9c3c73073f6594102e21d  src/discord-hero/domain/item-effects.ts
+df16f550dd48fa7722ed56196b0c7db8e603058fd7a4d1a459ef2a58c83e7367  src/discord-hero/domain/item-effects.test.ts
+a81916328de47f3e309f629c830ef0ae79f8c8ff73c9b13eb78c53c80d4668b7  src/discord-hero/catalog/indexes.ts
+0ade3c4bff3cdfae35e8f17ba610dbdad7003a46e9b727370da0e84dd0b23d68  src/discord-hero/catalog/indexes.test.ts
+733b8093ae483ce55f53e4dec833e85370b93a5ff7e8a1de4612fedd5f9aa19b  src/discord-hero/catalog/loader.ts
+a210de57dc2fb7ac08846d40d709788d4b5e18c8d88b8925583b83dcb799b131  src/discord-hero/ui/materials-extraction-browser.ts
+d1fe6c37dc875f02f38a0a2057538febe2eb3c9652b3a28aeab3d9f6630bb616  src/discord-hero/ui/materials-extraction-browser.test.ts
+ad22771128a2dc83c47a0c5cb9849e6f32e5c680b120fae844274078a33bf158  src/discord-hero/ui/rune-effects.ts
+451096d423d5d7268dd8d2732560412b5db5ba78c9ea7dde3707144bebf5f166  src/discord-hero/domain/unique-mod-topology.ts
+e08ae935f04ded0b9c92c1711f0d53fb5a9267aa6ee8d6d35d17221f850c9da0  package.json
+95efcff7454e1e55d066f69c5be51a3b76da0cd042ba69691e01b25ace62bc2c  bun.lock</code></pre>
+      <div class="note">
+        <strong>Vì sao đối chiếu hash quan trọng ở đây:</strong> workspace này không có <code>.git</code>
+        (xác nhận bởi chính kiểm toán), nên hash file là cơ chế "khoá phiên bản" duy nhất giữa các review nối
+        tiếp nhau trên cùng một thư mục dùng chung bởi nhiều tác nhân. Khối trên được tính lại trực tiếp ở
+        snapshot 11:27; slash reviewer pins cũ được giữ riêng để không nhầm approval frozen-scope với bytes
+        command/E2E mới hơn.
+      </div>
+    </div>
+
+    <h3>Đại diện số lượng test (MEDIUM — do các agent khác tự báo cáo trong message, báo cáo này chưa tự chạy lại)</h3>
+    <ul>
+      <li>Combat: 55/55 focused, 72/72 combat+stats+campaign; review chạy ma trận 23 candidate và APPROVE bytes hiện tại.</li>
+      <li>Rune Effects: 17/17 focused + 71/0 neighbor rồi 6754 assertion trên bộ neighbor mở rộng, 6 mutant scratch
+        đều bị giết đúng dự kiến, theo hai message liên tiếp của <code>task_6c16ca6b4dff</code>.</li>
+      <li>Unique-mod topology: 27/27 focused + 111 neighbor, 15/15 guard mutant bị giết, 7/8 trust mutant bị giết
+        (1 tương đương hành vi), theo <code>task_dc1905cc9111</code>.</li>
+      <li>Slash-root E2E: 11/11 focused + 79 neighbor, lặp lại 10 lần serial + concurrency-4 đều pass; reviewer
+        APPROVE phạm vi mock-protocol tại bốn hash đã pin trong report.</li>
+      <li>Item Effects recovery: 128/128 sweep, 485.482 assertions; 6/6 exact-source mutant bị giết; report nguồn
+        là author handoff trên bốn hash hiện tại.</li>
+      <li>Materials authority: 143/143 targeted, 49.201 assertions; scoped/global TypeScript pass và 11 mutant bị
+        giết; không có full-repository <code>bun test</code>.</li>
+      <li>Bản kiểm toán tổng (HIGH — đây là số của chính tài liệu audit, không phải self-report): một lần chạy
+        cold serial <code>market.test.ts</code> + <code>workspace.test.ts</code> ra "50 pass, 2 fail, 118.21s" —
+        cả 2 fail là timeout 5 giây, được audit ghi là "concurrent-snapshot drift", không phải lỗi logic ổn định.</li>
+    </ul>
+
+    <h2 id="rui-ro">Sổ rủi ro &amp; hàng đợi hành động tiếp theo</h2>
+    <div class="callout danger">
+      <strong>Nhắc lại điều quan trọng nhất</strong>
+      Test pass <strong>không đồng nghĩa</strong> với "chơi được" hay "đã giao qua Discord thật". Toàn bộ số liệu
+      focused/behavioral ở trên chứng minh các module domain/UI hành xử đúng theo test hiện có — chúng không
+      chứng minh một người chơi Discord thật có thể mở đội hình, vào màn, đánh quái và nhận thưởng, vì vòng lặp
+      đó chưa được nối (<a href="#vong-lap-loi">xem mục trên</a>), và chưa có smoke test Discord thật nào chạy.
+    </div>
+    <div class="table-wrap">
+      <table class="wide">
+        <thead><tr><th>Rủi ro</th><th>Mức</th><th>Bằng chứng</th><th>Giảm thiểu / chủ sở hữu hiện tại</th></tr></thead>
+        <tbody>
+          <tr><td>Vòng lặp chơi lõi chưa có authority để resolve tổng quát</td><td><span class="chip chip-w">CAO</span></td>
+            <td>Campaign/skills vẫn throw cho cadence, target, status, death/revive</td>
+            <td>Bắt đầu bằng starter-selection core; giữ <code>resolveWave</code> tổng quát fail-closed</td></tr>
+          <tr><td>Điểm strict vẫn 0 dù trần T1 đã vượt ngưỡng</td>
+            <td><span class="chip chip-w">CAO</span></td>
+            <td>T1 local 69 bảo thủ / 74–75 mở rộng; T1–T5 artifact chưa được tái sinh</td>
+            <td>Regenerate matrix từ receipt + mutation attestation; không chuyển trần thành điểm đạt</td></tr>
+          <tr><td>Lịch sử thất bại lặp lại quanh oracle Hero/Pet</td><td><span class="chip chip-w">TRUNG BÌNH</span></td>
+            <td>3 task <code>failed</code>: 2× "Fail-closed Hero ownership and party transitions", 1× "Final Pet
+              transition gate review"</td>
+            <td>Chưa có mũi mới được dispatch riêng cho FND-03/FND-04/PET-02 — cần escalate quyết định có tìm
+              oracle thay thế hay giữ nguyên gate</td></tr>
+          <tr><td>Starter/formation mới dừng ở thiết kế</td><td><span class="chip chip-w">CAO</span></td>
+            <td>Option A chờ user duyệt; current factory vẫn triển khai ba hero</td>
+            <td>Duyệt A hoặc chọn phương án khác, sau đó strict RED → GREEN → fresh read-only review</td></tr>
+          <tr><td>StageBox deterministic T2 mới dừng ở kiến trúc</td><td><span class="chip chip-w">TRUNG BÌNH</span></td>
+            <td>Report ghi READY FOR STRICT-TDD, NOT APPROVED; chưa có compiled contract</td>
+            <td>Thực hiện Phase 5 đúng scope rồi mới mở T3 consume/grant, T4 controls và T5 E2E</td></tr>
+          <tr><td>Global typecheck/test có lịch sử không ổn định giữa các lần chạy do nhiều agent sửa song song</td>
+            <td><span class="chip chip-w">TRUNG BÌNH</span></td>
+            <td>Audit: 2 lần chạy global DiscordHero cho kết quả khác nhau (983 pass/19 fail combat vs 982 pass/24
+              fail unique-mod) với hash scope khác nhau giữa 2 lần</td>
+            <td>Audit đã kiến nghị: cấm ghi đồng thời + hash toàn bộ scope trước/sau + chỉ chấp nhận khi hash khớp</td></tr>
+          <tr><td>Không có artifact release (parity dashboard) nào được sinh</td><td><span class="chip chip-w">TRUNG BÌNH</span></td>
+            <td><code>04-parity-dashboard-schema.json</code> tồn tại nhưng chưa có bản sinh nào theo schema này</td>
+            <td>Nằm ở Slice 3 trong kiến trúc E2E — sau khi ≥3 luồng mutation lặp lại đủ để trích xuất chung</td></tr>
+          <tr><td>Live Discord hoàn toàn chưa xác minh</td><td><span class="chip chip-w">CAO cho release, THẤP cho tiến độ hiện tại</span></td>
+            <td>Không có task/deploy nào trong ledger; audit ghi rõ RELEASE GATE riêng</td>
+            <td>Cổng tách biệt, chỉ mở khi có uỷ quyền tường minh: guild/kênh thử nghiệm, hash artifact đã duyệt,
+              kế hoạch dọn dẹp</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Hàng đợi hành động tiếp theo (ưu tiên giảm dần)</h3>
+    <ol>
+      <li>User duyệt Option A cho starter/formation; sau đó strict-TDD một initial deployment, base slot 1 và hai
+        nguồn Rune <code>+1/+1</code>.</li>
+      <li>Triển khai StageBox Phase 5 deterministic T2 từ kiến trúc đã hoàn tất; giữ T3–T5 tách biệt.</li>
+      <li>Nối và attest riêng <code>start</code>, <code>advance</code>, <code>collect</code>; không gọi critical
+        loop là playable trước khi cả ba qua emitted-control + SQLite/restart proof.</li>
+      <li>Sinh lại ma trận T1–T5 hash-bound; giữ điểm strict 0 cho tới khi artifact + reviewer attestation hoàn tất.</li>
+      <li>Thiết kế capture Windows cho các oracle còn thiếu; chỉ mở general combat sau khi cadence/target/status/
+        resurrection có nguồn.</li>
+      <li>Chạy live Discord smoke trong guild/kênh thử nghiệm khi có uỷ quyền tường minh và deploy hash đã khóa.</li>
+    </ol>
+
+    <h2 id="gioi-han">Giới hạn xác minh &amp; ghi chú thời gian</h2>
+    <div class="callout tip">
+      <strong>Dấu thời gian</strong>
+      Báo cáo được cập nhật lúc <strong>2026-07-30 11:27 (Asia/Ho_Chi_Minh, UTC+7)</strong>, đọc trực tiếp bằng
+      <code>TZ=Asia/Ho_Chi_Minh date</code> ngay trong phiên soạn báo cáo.
+    </div>
+    <ul>
+      <li><strong>Workspace dùng chung, không Git:</strong> thư mục này không có <code>.git</code> (xác nhận bởi
+        chính kiểm toán và bởi context phiên làm việc). Nhiều tác nhân sửa cùng cây thư mục song song, không có
+        commit/branch để neo lại — vì vậy mọi khẳng định trong báo cáo bám vào <strong>hash file cụ thể</strong>
+        đọc tại đúng thời điểm nêu trên, không bám vào một trạng thái "repo" cố định nào.</li>
+      <li><strong>Task ID có thể bị tái sử dụng</strong> qua vòng đời hàng đợi của Orca (xem ví dụ Sound topology
+        ở mục Bảng điều khiển) — review luôn hash-bound (file hash + nội dung message), không phải
+        ID-bound. Một task ID trích trong báo cáo này có thể trỏ tới nội dung khác nếu tra cứu lại sau này.</li>
+      <li><strong>Không tự chạy lại toàn bộ test suite:</strong> số test trong dashboard lấy từ review
+        hash-bound và được đối chiếu với hash hiện tại; phiên HTML chỉ chạy kiểm tra cấu trúc/hiển thị của chính
+        artifact.</li>
+      <li><strong>Không tuyên bố phần trăm parity mới.</strong> Con số chính thức duy nhất là 0/80 (đóng băng tại
+        kiểm toán). Không có ma trận sinh tự động + attestation T5 nào thay thế nó tại thời điểm viết báo cáo.</li>
+      <li><strong>Không tuyên bố bằng chứng Discord thật (live).</strong> Không có deploy, không có mutation
+        mạng, không có smoke test production nào được thực hiện hay quan sát.</li>
+    </ul>
+
+    <h2 id="tham-chieu">Tham chiếu nguồn</h2>
+    <ul>
+      <li><code>/tmp/discordhero-phase1-4-audit.d1quq6/01-master-audit.md</code> — kiểm toán tổng, verdict
+        REQUEST_CHANGES, 0/80.</li>
+      <li><code>/tmp/discordhero-phase1-4-audit.d1quq6/02-capability-matrix.md</code> — ma trận 80 dòng, nguồn
+        của mọi bảng T1-T5 trong báo cáo này.</li>
+      <li><code>/tmp/discordhero-phase1-4-audit.d1quq6/03-e2e-simulator-architecture.md</code> — kiến trúc
+        simulator, thứ tự vertical slice tới 90%.</li>
+      <li><code>/tmp/discordhero-phase1-4-audit.d1quq6/04-parity-dashboard-schema.json</code> — schema artifact
+        release chưa được sinh lần nào.</li>
+      <li><code>/tmp/discordhero-phase1-4-audit.d1quq6/SHA256SUMS.txt</code> — tự xác minh khớp cả 4 file trên
+        bằng <code>shasum -a 256 -c</code> trong phiên soạn báo cáo này.</li>
+      <li><code>/tmp/discordhero-critical-loop-phase1-4.md</code> — kiểm toán authority/critical-loop mới;
+        các kết luận số học được coordinator tái kiểm tra, gồm correction STAGEBOX.</li>
+      <li><code>/tmp/orca-phase6-discordhero-e2e-w7n51S/reports/phase6-discordhero-e2e-review.md</code> —
+        APPROVE phạm vi mock-protocol E2E; live Discord được ghi UNVERIFIED.</li>
+      <li><code>/private/tmp/claude-501/-Users-firegroup-projects-discord-claude-bot/f428a5dc-b42c-43a7-931b-dd99334f1ed4/scratchpad/reviewer-report.md</code>
+        — independent Combat APPROVE, report SHA-256 <code>d3a8e3ae…ba5a3</code>.</li>
+      <li><code>/private/tmp/item-effects-recovery-fix3-author/artifact-4-report.md</code> và
+        <code>/private/tmp/materials-authority-post-import-followup.md</code> — author evidence cho hai status
+        APPROVE HIGH hiện hành; report tự ghi rõ không phải independent approval.</li>
+      <li><code>/tmp/discordhero-starter-formation-architecture.md</code> — kiến trúc Option A chờ user duyệt,
+        SHA-256 <code>619f8fb8…aa005</code>; <code>/tmp/discordhero-stagebox-t2-architecture.md</code> — StageBox
+        deterministic T2 design, SHA-256 <code>4b5b4f95…3c603</code>.</li>
+      <li><code>/tmp/synthesis-browser-phase5.Awwhaj/verification-report.md</code>,
+        <code>/tmp/task_d64b8ddd3803-sound-topology-phase6-review.md</code>,
+        <code>/tmp/task_604f588a8a68-drop-topology-phase6-review.md</code>,
+        <code>/tmp/orca-phase6-review-LodvYd/reports/phase6-unique-mod-topology-review.md</code> — verdict
+        APPROVE độc lập theo hash cho các lane tương ứng.</li>
+      <li><code>orca orchestration task-list --json</code> / <code>orca orchestration inbox --json</code> /
+        <code>orca terminal list --json</code> — nguồn trạng thái task/message/terminal sống, đọc trực tiếp lúc
+        viết báo cáo (không phải cache).</li>
+      <li><code>src/commands/discordhero.ts</code>, <code>src/discord-hero/**</code> — mã nguồn được trích dẫn
+        hash trực tiếp bằng <code>shasum -a 256</code> trong phiên này.</li>
+    </ul>
+
+    <footer>
+      Cập nhật lúc 2026-07-30 11:27 (Asia/Ho_Chi_Minh) · Nguồn: kiểm toán Phase 1-4 + review hash-bound +
+      tái kiểm tra STAGEBOX/formation · Điểm nghiêm ngặt: 0/80 (đóng băng); trần T1 69 bảo thủ / 74–75 mở rộng ·
+      Live Discord: UNVERIFIED · Mọi review trong chương trình là hash-bound, không phải ID-bound hay commit-bound.
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Optional deterministic preview: append ?theme=light or ?theme=dark.
+  (function () {
+    var theme = new URLSearchParams(window.location.search).get('theme');
+    if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+  })();
+
+  // TOC scroll-spy
+  (function () {
+    var links = document.querySelectorAll('aside.toc a[href^="#"]');
+    var map = new Map();
+    links.forEach(function (a) { map.set(a.getAttribute('href').slice(1), a); });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          links.forEach(function (a) { a.classList.remove('active'); });
+          var link = map.get(e.target.id);
+          if (link) link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-30% 0px -65% 0px' });
+    document.querySelectorAll('main h2').forEach(function (h) { io.observe(h); });
+  })();
+
+  // Lane status filter
+  (function () {
+    var sel = document.getElementById('lane-filter');
+    var rows = document.querySelectorAll('#lane-table tbody tr');
+    var count = document.getElementById('lane-count');
+    function apply() {
+      var v = sel.value;
+      var shown = 0;
+      rows.forEach(function (r) {
+        var match = v === 'ALL' || r.getAttribute('data-status') === v;
+        r.classList.toggle('is-hidden', !match);
+        if (match) shown++;
+      });
+      count.textContent = shown + ' / ' + rows.length + ' lane';
+    }
+    sel.addEventListener('change', apply);
+    apply();
+  })();
+
+  // Category summary table filter
+  (function () {
+    var sel = document.getElementById('cat-filter');
+    var rows = document.querySelectorAll('#cat-summary-table tbody tr');
+    function apply() {
+      var v = sel.value;
+      rows.forEach(function (r) {
+        var match = v === 'ALL' || r.getAttribute('data-cat') === v;
+        r.classList.toggle('is-hidden', !match);
+      });
+    }
+    sel.addEventListener('change', apply);
+  })();
+
+  // Full 80-row matrix filter (category select reused via cat-filter + local t1-filter)
+  (function () {
+    var catSel = document.getElementById('cat-filter');
+    var t1Sel = document.getElementById('t1-filter');
+    var rows = document.querySelectorAll('#full-matrix-table tbody tr');
+    var count = document.getElementById('matrix-count');
+    function apply() {
+      var cv = catSel.value;
+      var tv = t1Sel.value;
+      var shown = 0;
+      rows.forEach(function (r) {
+        var okCat = cv === 'ALL' || r.getAttribute('data-cat') === cv;
+        var okT1 = tv === 'ALL' || r.getAttribute('data-t1') === tv;
+        var match = okCat && okT1;
+        r.classList.toggle('is-hidden', !match);
+        if (match) shown++;
+      });
+      count.textContent = shown + ' / ' + rows.length + ' năng lực';
+    }
+    catSel.addEventListener('change', apply);
+    t1Sel.addEventListener('change', apply);
+    apply();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+node_modules/
+.env
+data/
+.test-data/
+bot/data/
+logs/
+*.log
+.DS_Store
+template/.claude/skills/orb-bot/
+
+# Snapshot rotation artifacts — only preferences/taskbarhero/ is the authority
+preferences/.taskbarhero.staging.*
+preferences/taskbarhero.previous.*
+
+# Agent/tooling runtime state
+.omc/
+.remember/
+.superpowers/
+.tmp/
+
+# Local backups
+*.tar.gz

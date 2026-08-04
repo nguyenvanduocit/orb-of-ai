@@ -1,0 +1,431 @@
+#===============================================================================================================
+# S-TIER ONLY Filter - Path of Exile 2
+#===============================================================================================================
+# ULTRA STRICT - Only highest value items
+# ALL DROP SOUNDS DISABLED
+#===============================================================================================================
+
+#===============================================================================================================
+# GOD-TIER CURRENCY (Mirror & Divine)
+#===============================================================================================================
+
+Show
+	BaseType == "Mirror of Kalandra"
+	SetFontSize 45
+	SetTextColor 255 0 255 255
+	SetBorderColor 255 0 255 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Pink
+	MinimapIcon 0 Pink Star
+	DisableDropSound True
+
+Hide
+	BaseType == "Divine Orb"
+	DisableDropSound True
+
+#===============================================================================================================
+# S-TIER CURRENCY (always show)
+#===============================================================================================================
+
+Show
+	BaseType == "Orb of Annulment"
+	SetFontSize 45
+	SetTextColor 255 255 255 255
+	SetBorderColor 255 0 255 255
+	SetBackgroundColor 150 0 200 255
+	PlayEffect Purple
+	MinimapIcon 0 Purple Star
+	DisableDropSound True
+
+Show
+	BaseType == "Fracturing Orb" "Hinekora's Lock" "Chaos Orb" "Greater Chaos Orb" "Perfect Chaos Orb" "Crystallised Corruption" "Vaal Cultivation Orb" "Architect's Orb" "Ancient Infuser" "Perfect Jeweller's Orb" "Albino Rhoa Feather" "Vaal Infuser"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Concentrated Liquid Fear" "Concentrated Liquid Isolation" "Concentrated Liquid Suffering" "Liquid Despair"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Neural Catalyst" "Sibilant Catalyst" "Skittering Catalyst" "Esh's Catalyst" "Tul's Catalyst" "Xoph's Catalyst" "Carapace Catalyst" "Reaver Catalyst"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Ancient Jawbone" "Ancient Collarbone" "Ancient Rib" "Gnawed Jawbone" "Gnawed Collarbone"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Tecrod's Gaze" "Idol of Eeshta" "Amanamu's Gaze" "Kurgal's Gaze" "Preserved Cranium" "Idol of Sirrius" "Rabbit Idol" "Fox Idol" "Ulaman's Gaze" "Preserved Collarbone" "Idol of Egrin"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Primary Calamity Fragment" "Secondary Calamity Fragment" "Tertiary Calamity Fragment" "Ancient Crisis Fragment" "Weathered Crisis Fragment" "Faded Crisis Fragment"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Cowardly Fate" "Victorious Fate" "Deadly Fate"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Breach Splinter" "Liquid Disgust"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Essence of Delirium" "Essence of Horror" "Essence of Hysteria" "Essence of Insanity" "Essence of the Abyss"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	BaseType == "Omen of Chance" "Omen of Light" "Omen of Sanctification" "Omen of the Blessed" "Omen of the Hunt" "Omen of Whittling" "Omen of Abyssal Echoes" "Omen of Sinistral Annulment" "Omen of Sinistral Erasure" "Omen of Dextral Erasure" "Omen of Dextral Annulment" "Omen of Dextral Crystallisation" "Omen of Sinistral Crystallisation" "Omen of Corruption" "Omen of Sinistral Exaltation" "Omen of Dextral Exaltation" "Omen of Recombination" "Omen of Catalysing Exaltation" "Omen of Reinforcements" "Omen of Chaotic Monsters"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+#===============================================================================================================
+# T0 UNIQUES (Excellent - highest value only)
+#===============================================================================================================
+
+Show
+	Rarity Unique
+	BaseType == "Incense Relic" "Golden Charm" "Ultimate Life Flask" "Unset Ring" "Sacrificial Regalia" "Diamond" "Ornate Gauntlets" "Tribal Mask" "Vase Relic" "Time-Lost Diamond" "Timeless Jewel" "Grand Manchettes" "Sacred Focus" "Ruby" "Altar Robe" "Pronged Spear" "Grand Regalia" "Conqueror Plate"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+#===============================================================================================================
+# S-TIER KEYS
+#===============================================================================================================
+
+Show
+	Class == "Pinnacle Keys"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	Class == "Expedition Logbooks"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+# Hide ALL Reliquary Keys by BaseType (more reliable than Class)
+Hide
+	BaseType == "Twilight Reliquary Key" "Olroth's Reliquary Key" "Ritualistic Reliquary Key" "Tangmazu's Reliquary Key" "The Arbiter's Reliquary Key" "The Trialmaster's Reliquary Key" "Xesht's Reliquary Key" "Zarokh's Reliquary Key" "Azmeri Reliquary Key"
+	DisableDropSound True
+
+# Fallback: Hide by Class
+Hide
+	Class == "Vault Keys"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIGH VALUE SOUL CORES (Class: Augment)
+#===============================================================================================================
+
+Show
+	Class == "Augment"
+	BaseType == "Soul Core of Jiquani" "Soul Core of Zalatl" "Jiquani's Thesis" "Guatelitzi's Thesis"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+Show
+	Class == "Augment"
+	BaseType == "Quipolatl's Soul Core of Flow" "Tzamoto's Soul Core of Ferocity" "Guatelitzi's Soul Core of Endurance" "Xopec's Soul Core of Power" "Soul Core of Azcapa" "Soul Core of Quipolatl" "Quipolatl's Thesis"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+#===============================================================================================================
+# HIGH VALUE RUNES (Class: Augment)
+#===============================================================================================================
+
+Show
+	Class == "Augment"
+	BaseType == "Greater Rune of Alacrity" "Iron Rune" "Greater Rune of Leadership" "Greater Rune of Tithing" "Hedgewitch Assandra's Rune of Wisdom" "Countess Seske's Rune of Archery"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE OTHER AUGMENTS (Runes/Soul Cores)
+#===============================================================================================================
+
+Hide
+	Class == "Augment"
+	DisableDropSound True
+
+#===============================================================================================================
+# S-TIER LINEAGE GEMS (Support Gems only)
+#===============================================================================================================
+
+Show
+	Class == "Support Gems"
+	BaseType == "Atalui's Bloodletting" "Ixchel's Torment" "Xoph's Pyre" "Esh's Radiance" "Tul's Stillness" "Uul-Netol's Embrace" "Rakiata's Flow" "Rigwald's Ferocity" "Uhtred's Exodus" "Uhtred's Omen" "Uhtred's Augury" "Garukhan's Resolve" "Arbiter's Ignition" "Zerphi's Infamy" "Arjun's Medal" "Sione's Temper" "Brutus' Brain"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+
+#===============================================================================================================
+# HIDE OTHER SUPPORT GEMS
+#===============================================================================================================
+
+Hide
+	Class == "Support Gems"
+	DisableDropSound True
+
+#===============================================================================================================
+# QUEST ITEMS (always show)
+#===============================================================================================================
+
+Show
+	Class == "Quest Items"
+	SetFontSize 36
+	SetTextColor 74 230 58 255
+	PlayEffect Green
+	MinimapIcon 0 Green Pentagon
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL CURRENCY (not matched above)
+#===============================================================================================================
+
+Hide
+	Class == "Stackable Currency" "Incubators"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL OMENS (not matched above)
+#===============================================================================================================
+
+Hide
+	Class == "Omen"
+	DisableDropSound True
+
+#===============================================================================================================
+# WAYSTONES (T15-T16 only)
+#===============================================================================================================
+
+Show
+	WaystoneTier >= 15
+	Class == "Waystones"
+	SetFontSize 32
+	SetTextColor 255 255 255 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 0 0 0 255
+	PlayEffect Red
+	MinimapIcon 1 Red Star
+
+Hide
+	Class == "Waystones"
+
+#===============================================================================================================
+# HIDE ALL UNIQUES (not matched above)
+#===============================================================================================================
+
+Hide
+	Rarity Unique
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL GEAR (Rare, Magic, Normal)
+#===============================================================================================================
+
+Hide
+	Rarity Rare
+	DisableDropSound True
+
+Hide
+	Rarity Magic
+	DisableDropSound True
+
+Hide
+	Rarity Normal
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE SKILL GEMS & UNCUT GEMS
+#===============================================================================================================
+
+Hide
+	Class == "Skill Gems"
+	DisableDropSound True
+
+Hide
+	BaseType "Uncut"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL JEWELS
+#===============================================================================================================
+
+Hide
+	Class == "Jewels"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL FLASKS
+#===============================================================================================================
+
+Hide
+	Class == "Life Flasks" "Mana Flasks"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL CHARMS
+#===============================================================================================================
+
+Hide
+	Class == "Charms"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL BELTS
+#===============================================================================================================
+
+Hide
+	Class == "Belts"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE ALL RELICS
+#===============================================================================================================
+
+Hide
+	Class == "Relics"
+	DisableDropSound True
+
+#===============================================================================================================
+# SPECIAL PRECURSOR TABLETS (with league content)
+#===============================================================================================================
+
+Show
+	Class == "Tablet"
+	BaseType == "Abyss Precursor Tablet" "Breach Precursor Tablet" "Delirium Precursor Tablet" "Expedition Precursor Tablet" "Overseer Precursor Tablet" "Ritual Precursor Tablet"
+	SetFontSize 38
+	SetTextColor 255 0 0 255
+	SetBorderColor 255 0 0 255
+	SetBackgroundColor 255 255 255 255
+	PlayEffect Red
+	MinimapIcon 0 Red Star
+	DisableDropSound True
+
+#===============================================================================================================
+# ALL OTHER TABLETS (show for review)
+#===============================================================================================================
+
+Show
+	Class == "Tablet"
+	SetFontSize 32
+	SetTextColor 255 255 255 255
+	SetBorderColor 128 128 128 255
+	SetBackgroundColor 0 0 0 255
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE MAP FRAGMENTS
+#===============================================================================================================
+
+Hide
+	Class == "Map Fragments"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE GOLD
+#===============================================================================================================
+
+Hide
+	BaseType == "Gold"
+	DisableDropSound True
+
+#===============================================================================================================
+# HIDE EVERYTHING ELSE
+#===============================================================================================================
+
+Hide
+	DisableDropSound True

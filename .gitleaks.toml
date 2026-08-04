@@ -1,0 +1,28 @@
+# Scan config for this repo. Extends gitleaks' default rules; the allowlist
+# below covers values that look like credentials but are game data or hashes.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(?:key|api|token|secret|client|passwd|password|auth|access)(?:[0-9a-z\-_\t .]{0,20})(?:[\s|']|[\s|"]){0,3}(?:=|>|:{1,3}=|\|\||:|<=|=>|:=|\?=)(?:'|\"|\s|=|\x60){0,5}([0-9a-z\-_.=]{10,150})(?:['|\"|\n|\r|\s|\x60|;|\\]|$)'''
+entropy = 3.5
+keywords = ["key", "api", "token", "secret", "client", "passwd", "password", "auth", "access"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  paths = [
+    # TaskbarHero ships this EasySave3 password inside its own binary; the save
+    # oracles need it to decrypt local .es3 files. It grants access to nothing
+    # but a save file the player already owns.
+    '''src/discord-hero/oracles/es3-envelope\.ts''',
+    '''src/discord-hero/oracles/campaign-save-delta-discovery\.test\.ts''',
+    '''src/discord-hero/oracles/pet-arrangement-capture\.test\.ts''',
+    '''scripts/discordhero-campaign-save-delta\.test\.ts''',
+    '''scripts/discordhero-pet-arrangement-oracle\.test\.ts''',
+    # Compiled source catalogs: every "key" here is a TaskbarHero content id.
+    '''assets/discordhero/.*\.json''',
+  ]
+  # Content digests pinned as test constants are hashes, not credentials.
+  regexes = ['''(?i)_SHA256\s*=\s*"?[0-9a-f]{64}"?''']

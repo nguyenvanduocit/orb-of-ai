@@ -1,0 +1,79 @@
+{
+  "source": "Mirrored from .claude/skills/lootfilter/parser/src/types.ts POE2_CLASSES (verified 2026-05-24, POE2 0.4 corpus). Re-verify at 0.5 launch.",
+  "verified_at": "2026-05-24",
+  "verified_for_patch": "0.4",
+  "needs_recheck_at_patch": "0.5",
+  "equipment": [
+    "Body Armours",
+    "Boots",
+    "Gloves",
+    "Helmets",
+    "Shields",
+    "Bucklers",
+    "Foci",
+    "Bows",
+    "Crossbows",
+    "Quarterstaves",
+    "Staves",
+    "Wands",
+    "Sceptres",
+    "One Hand Maces",
+    "Two Hand Maces",
+    "Spears",
+    "Talismans",
+    "Amulets",
+    "Rings",
+    "Belts",
+    "Quivers"
+  ],
+  "currency": [
+    "Stackable Currency",
+    "Augment",
+    "Omen",
+    "Incubators"
+  ],
+  "consumables": [
+    "Life Flasks",
+    "Mana Flasks",
+    "Charms"
+  ],
+  "other": [
+    "Jewels",
+    "Relics",
+    "Skill Gems",
+    "Support Gems",
+    "Waystones",
+    "Tablet",
+    "Map Fragments",
+    "Expedition Logbooks",
+    "Pinnacle Keys",
+    "Vault Keys",
+    "Quest Items",
+    "Instance Local Items",
+    "Fishing Rods"
+  ],
+  "poe1_only_excluded": [
+    "Maps",
+    "Atlas Region Upgrade Item",
+    "Watchstones",
+    "Sextants",
+    "Heist Targets",
+    "Heist Tools",
+    "Heist Cloaks",
+    "Heist Brooches",
+    "Heist Gear",
+    "Sentinel",
+    "Tinctures",
+    "Memory Line",
+    "Misc Map Items",
+    "Currency Item Filter",
+    "Logbooks"
+  ],
+  "notes": [
+    "POE2 0.3+ removed the concept of socketable runes inside gear slots that POE1 has — 'Augment' is the umbrella class covering Soul Cores + Ancient Runes + Mythical Runes + Meta Crafting Runes + Runic Ward Runes.",
+    "WaystoneTier range is 1-16 (T16 only via corruption of T15).",
+    "Tablet is singular (not 'Tablets') — exact match required in filter Class condition.",
+    "POE2 has Pinnacle Keys (boss access) + Vault Keys (Trial of the Sekhemas vault) as separate classes — both should be Show'd unconditionally.",
+    "0.5 'Runes of Aldur' (~2026-05-29) may introduce new classes — common candidates: 'Remnant' (the Runic Recipe slate item), Kalguuran-specific skill/support gem subclasses. Re-verify POE2_CLASSES against parser/src/types.ts after 0.5 sample filter is published on poe2filter.com."
+  ]
+}
