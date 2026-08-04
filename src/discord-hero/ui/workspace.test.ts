@@ -192,7 +192,7 @@ function assertDiscordHeroCommunityRenderBounds(value: unknown): void {
 function stateWithTwentySixEquippedItems(
   indexes: ReturnType<typeof buildCatalogIndexes>,
 ) {
-  const state = createFreshPlayerStateFromCatalog(indexes);
+  const state = createFreshPlayerStateFromCatalog(indexes, 101);
   const itemKeys = {
     SWORD: 300001,
     BOW: 310001,
@@ -266,7 +266,7 @@ function stateWithAllReachableItemEffects(
   itemKey = 300001,
   instanceId = "workspace-item-effects",
 ) {
-  const state = createFreshPlayerStateFromCatalog(indexes);
+  const state = createFreshPlayerStateFromCatalog(indexes, 101);
   const item = indexes.tables.items.groups.get(itemKey)?.[0];
   if (item?.type !== "GEAR" || item.gear === null) {
     throw new Error(`Item Effects workspace fixture ${itemKey} is not gear`);
@@ -298,7 +298,7 @@ describe("DiscordHero private workspace", () => {
     const market = await loadDiscordHeroCommunityMarket();
     const snapshot = {
       revision: 17,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
 
     for (const view of DISCORD_HERO_VIEWS) {
@@ -330,7 +330,11 @@ describe("DiscordHero private workspace", () => {
                       ? 13
                       : view === "market"
                         ? 16
-                        : 10;
+                        : // A fresh player has capacity 1, so Party emits one
+                          // menu for the single occupied slot.
+                          view === "party"
+                          ? 11
+                          : 10;
       expect(customIds).toHaveLength(expectedControlCount);
       expect(new Set(customIds).size).toBe(expectedControlCount);
       expect(customIds.slice(-10).map(decodeDiscordHeroCustomId)).toEqual(
@@ -349,7 +353,7 @@ describe("DiscordHero private workspace", () => {
     const market = await loadDiscordHeroCommunityMarket();
     const snapshot = {
       revision: 17,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const kinds = [
       "all",
@@ -500,7 +504,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 9,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     snapshot.state.gold = 50;
 
@@ -558,7 +562,7 @@ describe("DiscordHero private workspace", () => {
 
   test("traverses every max Container identity and renders lossless occupied or free detail within Discord bounds", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     const stackItem = indexes.tables.items.rows.find(
       (item) => item.deleted !== true && item.type !== "GEAR",
     );
@@ -782,8 +786,14 @@ describe("DiscordHero private workspace", () => {
 
   test("renders the exact projected Home dashboard without raw party IDs or session secrets", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
-    state.party = [101, null, 301];
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
+    // Rune 21 buys the second slot, so slot 2 is empty and slot 3 stays locked.
+    state.runes = [
+      { key: 1, level: 1 },
+      { key: 20, level: 1 },
+      { key: 21, level: 1 },
+    ];
+    state.party = [101, null, null];
     state.heroes[0]!.level = 10;
     state.heroes[0]!.xp = 7;
     state.heroes[2]!.level = 30;
@@ -875,7 +885,7 @@ describe("DiscordHero private workspace", () => {
 
   test("renders the terminal level-100 bar without implying level 101", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.heroes[0]!.level = 100;
     state.heroes[0]!.xp = 1_997_771_835;
     const before = structuredClone(state);
@@ -903,7 +913,7 @@ describe("DiscordHero private workspace", () => {
 
   test("renders every occupied Inventory slot in bounded source-exact pages", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.containers.inventory.unlockedSlots = 30;
     state.containers.inventory.slots.push(
       ...Array.from({ length: 26 }, (_, index) => ({
@@ -985,7 +995,7 @@ describe("DiscordHero private workspace", () => {
       slot: number,
     ) => string;
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.containers.inventory.unlockedSlots = 60;
     for (let index = 25; index >= 0; index -= 1) {
       state.containers.inventory.slots.push({
@@ -1081,7 +1091,7 @@ describe("DiscordHero private workspace", () => {
 
   test("renders exact selected gear and only compatible equip hero choices", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.containers.inventory.slots.push({
       index: 4,
       asset: {
@@ -1137,7 +1147,7 @@ describe("DiscordHero private workspace", () => {
 
   test("binds equipped gear to a bounded explicit free-slot unequip picker", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.containers.inventory.unlockedSlots = 30;
     state.containers.inventory.slots.push({
       index: 0,
@@ -1420,7 +1430,7 @@ describe("DiscordHero private workspace", () => {
 
   test("renders unsupported Item Effects and unique-mod oracle gates without application or mutation claims", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const shieldState = createFreshPlayerStateFromCatalog(indexes);
+    const shieldState = createFreshPlayerStateFromCatalog(indexes, 101);
     shieldState.heroes[0]!.equipment.push({
       slot: "SHIELD",
       asset: {
@@ -1446,7 +1456,7 @@ describe("DiscordHero private workspace", () => {
       "#0 base · BlockChance/FLAT · raw 50 RAW · [unsupported-source] · BlockChance application requires the unresolved combat oracle",
     );
 
-    const uniqueState = createFreshPlayerStateFromCatalog(indexes);
+    const uniqueState = createFreshPlayerStateFromCatalog(indexes, 101);
     uniqueState.heroes[0]!.equipment.push({
       slot: "SWORD",
       asset: {
@@ -1484,7 +1494,7 @@ describe("DiscordHero private workspace", () => {
 
   test("keeps empty accessory vectors explicit, unequipped detail legacy, and all inputs unchanged without RNG or time", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.heroes[0]!.equipment.push({
       slot: "AMULET",
       asset: {
@@ -1577,7 +1587,7 @@ describe("DiscordHero private workspace", () => {
 
   test("keeps every Inventory mode within actual Components V2 budgets including dense details and notices", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const fresh = createFreshPlayerStateFromCatalog(indexes);
+    const fresh = createFreshPlayerStateFromCatalog(indexes, 101);
     const denseEquipment = stateWithTwentySixEquippedItems(indexes);
     const effectGear = denseEquipment.heroes
       .flatMap((hero) => hero.equipment)
@@ -1591,7 +1601,7 @@ describe("DiscordHero private workspace", () => {
         value: sourceIntervalCandidates(rows[0]!)[0]!,
       }));
     validatePlayerAgainstCatalog(denseEquipment, indexes);
-    const selectedInventory = createFreshPlayerStateFromCatalog(indexes);
+    const selectedInventory = createFreshPlayerStateFromCatalog(indexes, 101);
     selectedInventory.containers.inventory.unlockedSlots = 260;
     selectedInventory.containers.inventory.slots.push(
       ...Array.from({ length: 26 }, (_, index) => ({
@@ -1728,7 +1738,7 @@ describe("DiscordHero private workspace", () => {
 
   test("makes all 620 rolls on selected Inventory gear reachable within Discord bounds", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.containers.inventory.slots.push({
       index: 4,
       asset: {
@@ -1773,7 +1783,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 15,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     snapshot.state.gold = 500;
     const rendered = renderDiscordHeroWorkspace(
@@ -1813,7 +1823,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 16,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const expectedLines = [
       [
@@ -1876,7 +1886,7 @@ describe("DiscordHero private workspace", () => {
 
   test("renders an owned Hero raw stat preview without mutating state or revision", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.heroes[0]!.level = 2;
     state.heroes[0]!.attributes = [{ key: 101001, level: 2 }];
     const snapshot = { revision: 16, state };
@@ -1906,7 +1916,7 @@ describe("DiscordHero private workspace", () => {
 
   test("fails before rendering selected-Hero text for an invalid Attribute gate", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.heroes[0]!.attributes = [{ key: 101032, level: 1 }];
     const before = structuredClone(state);
 
@@ -1925,7 +1935,7 @@ describe("DiscordHero private workspace", () => {
 
   test("makes every exact Attribute node and all eight groups reachable through selected-Hero tabs", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.heroes[0]!.level = 2;
     state.heroes[0]!.attributes.push({ key: 101001, level: 2 });
     state.heroes[0]!.passives.push({ key: 101001, level: 3 });
@@ -2015,7 +2025,7 @@ describe("DiscordHero private workspace", () => {
     const cases = [
       {
         name: "available",
-        state: createFreshPlayerStateFromCatalog(indexes),
+        state: createFreshPlayerStateFromCatalog(indexes, 101),
         heroKey: 101,
         attributeKey: 101001,
         expected: [
@@ -2031,7 +2041,7 @@ describe("DiscordHero private workspace", () => {
       {
         name: "group locked",
         state: (() => {
-          const state = createFreshPlayerStateFromCatalog(indexes);
+          const state = createFreshPlayerStateFromCatalog(indexes, 101);
           state.heroes[0]!.level = 10;
           state.heroes[0]!.attributes = [{ key: 101001, level: 1 }];
           return validatePlayerAgainstCatalog(state, indexes);
@@ -2049,7 +2059,7 @@ describe("DiscordHero private workspace", () => {
       {
         name: "insufficient",
         state: (() => {
-          const state = createFreshPlayerStateFromCatalog(indexes);
+          const state = createFreshPlayerStateFromCatalog(indexes, 101);
           state.heroes[0]!.level = 10;
           state.heroes[0]!.attributes = [
             { key: 101001, level: 3 },
@@ -2068,7 +2078,7 @@ describe("DiscordHero private workspace", () => {
       {
         name: "maximum",
         state: (() => {
-          const state = createFreshPlayerStateFromCatalog(indexes);
+          const state = createFreshPlayerStateFromCatalog(indexes, 101);
           state.heroes[0]!.level = 3;
           state.heroes[0]!.attributes = [{ key: 101001, level: 3 }];
           return validatePlayerAgainstCatalog(state, indexes);
@@ -2084,7 +2094,7 @@ describe("DiscordHero private workspace", () => {
       },
       {
         name: "unowned",
-        state: createFreshPlayerStateFromCatalog(indexes),
+        state: createFreshPlayerStateFromCatalog(indexes, 101),
         heroKey: 401,
         attributeKey: 401001,
         expected: [
@@ -2158,11 +2168,11 @@ describe("DiscordHero private workspace", () => {
 
   test("renders exact active rows and additive factors from Attribute allocation", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const activeState = createFreshPlayerStateFromCatalog(indexes);
+    const activeState = createFreshPlayerStateFromCatalog(indexes, 101);
     activeState.heroes[0]!.level = 2;
     activeState.heroes[0]!.attributes = [{ key: 101003, level: 2 }];
     activeState.heroes[0]!.skills = [{ key: 10101, level: 5 }];
-    const additiveState = createFreshPlayerStateFromCatalog(indexes);
+    const additiveState = createFreshPlayerStateFromCatalog(indexes, 101);
     additiveState.heroes[0]!.level = 33;
     additiveState.heroes[0]!.attributes = [
       { key: 101001, level: 3 },
@@ -2224,7 +2234,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 11,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const rendered = renderDiscordHeroWorkspace(
       "123",
@@ -2260,7 +2270,7 @@ describe("DiscordHero private workspace", () => {
 
   test("makes all 8 main and 31 grouped Cube rows reachable through canonical Browse targets", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     const snapshot = {
       revision: Number.MAX_SAFE_INTEGER,
       state,
@@ -2364,7 +2374,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 12,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const first = renderDiscordHeroWorkspace(
       "123",
@@ -2460,7 +2470,7 @@ describe("DiscordHero private workspace", () => {
     expect(browsedRuneKeys).toHaveLength(197);
     expect(new Set(browsedRuneKeys).size).toBe(197);
 
-    const gatedState = createFreshPlayerStateFromCatalog(indexes);
+    const gatedState = createFreshPlayerStateFromCatalog(indexes, 101);
     gatedState.gold = 1_000;
     gatedState.runes = [
       { key: 1, level: 1 },
@@ -2478,9 +2488,39 @@ describe("DiscordHero private workspace", () => {
       (candidate) =>
         decodeDiscordHeroCustomId(candidate.customId).action === "upgrade",
     );
+    // The arrangement Rune is purchasable; the Skill-slot Rune is not.
     const command = gatedMenu?.options.find((option) => option.value === "21");
-    expect(command?.description).toContain(
-      "UnlockArrangeSlotCount · oracle-gated",
+    expect(command?.description).toContain("1,000g");
+    expect(command?.description).not.toContain("oracle-gated");
+
+    const awakeningState = createFreshPlayerStateFromCatalog(indexes, 101);
+    awakeningState.gold = 50_000;
+    awakeningState.runes = [
+      { key: 1, level: 1 },
+      { key: 20, level: 1 },
+      { key: 25, level: 1 },
+      { key: 26, level: 1 },
+      { key: 21, level: 1 },
+    ];
+    const awakening = Array.from({ length: 8 }, (_, runePage) => {
+      const page = renderDiscordHeroWorkspace(
+        "123",
+        "runes",
+        { revision: 13, state: awakeningState },
+        indexes,
+        undefined,
+        { runePage },
+      ).toJSON();
+      return collectSelectMenus(page)
+        .filter(
+          (candidate) =>
+            decodeDiscordHeroCustomId(candidate.customId).action === "upgrade",
+        )
+        .flatMap((menu) => menu.options)
+        .find((option) => option.value === "27");
+    }).find((option) => option !== undefined);
+    expect(awakening?.description).toContain(
+      "UnlockSkillSlotCount · oracle-gated",
     );
     expect(collectTextDisplayContents(gated).join("\n")).toContain(
       "Only source effects consumed by reachable Alchemy gameplay can upgrade.",
@@ -2489,7 +2529,7 @@ describe("DiscordHero private workspace", () => {
 
   test("rejects a catalog-invalid Rune snapshot before rendering UI", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.heroes[0]!.heroKey = 999999;
 
     expect(() =>
@@ -2508,7 +2548,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: Number.MAX_SAFE_INTEGER,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const pageSizes: number[] = [];
 
@@ -2580,7 +2620,7 @@ describe("DiscordHero private workspace", () => {
   test("renders bounded Pets, Skins, and captured Achievements with exact read-only detail", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const achievements = await loadDiscordHeroCommunityAchievements();
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.pets.unlocked = [1001];
     state.pets.active = 1001;
     const snapshot = { revision: Number.MAX_SAFE_INTEGER, state };
@@ -2672,7 +2712,7 @@ describe("DiscordHero private workspace", () => {
 
   test("keeps all Cube unlock controls while exposing bounded page-bound Alchemy selection", async () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-    const state = createFreshPlayerStateFromCatalog(indexes);
+    const state = createFreshPlayerStateFromCatalog(indexes, 101);
     state.cube.unlockedRecipes.push(200001);
     state.cube.unlockedSubRecipes.push(200011);
     state.containers.inventory.unlockedSlots = 30;
@@ -2734,7 +2774,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 14,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const selected = renderDiscordHeroWorkspace(
       "123",
@@ -2817,7 +2857,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 14,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const renderStage = (
       stageKey: number,
@@ -3050,7 +3090,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 14,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const renderStage = (stageKey: number | undefined) => {
       const stageIndex =
@@ -3154,7 +3194,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 14,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const notice =
       "State changed; the read-only stage inspection was refreshed.";
@@ -3195,7 +3235,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 14,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const kitsByMonsterKey = new Map(
       projectDiscordHeroMonsterAttackKits(indexes).map((kit) => [
@@ -3292,7 +3332,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 14,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     // 4304 is the densest source stage body in the corpus.
     const stageIndex = indexes.tables.stages.rows.findIndex(
@@ -3345,7 +3385,7 @@ describe("DiscordHero private workspace", () => {
     const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
     const snapshot = {
       revision: 14,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
 
     const perPage = Array.from({ length: 5 }, (_, page) => {
@@ -3380,7 +3420,7 @@ describe("DiscordHero private workspace", () => {
     const communityContent = await loadDiscordHeroCommunityContent();
     const snapshot = {
       revision: 13,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const rendered = renderDiscordHeroWorkspace(
       "123",
@@ -3470,7 +3510,7 @@ describe("DiscordHero private workspace", () => {
     const communityContent = await loadDiscordHeroCommunityContent();
     const snapshot = {
       revision: 13,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const list = renderDiscordHeroWorkspace(
       "123",
@@ -3563,7 +3603,7 @@ describe("DiscordHero private workspace", () => {
     const communityContent = await loadDiscordHeroCommunityContent();
     const snapshot = {
       revision: 13,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     let renderedLists = 0;
     let renderedDocuments = 0;
@@ -3639,5 +3679,89 @@ describe("DiscordHero private workspace", () => {
     expect(renderedLists).toBe(9);
     expect(renderedDocuments).toBe(153);
     expect(renderedChunks).toBeGreaterThan(153);
+  });
+
+  test("emits one Party menu per actionable slot and none for locked or hole-making slots", async () => {
+    const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
+    const CAPACITY_RUNES = {
+      1: [],
+      2: [
+        { key: 1, level: 1 },
+        { key: 20, level: 1 },
+        { key: 21, level: 1 },
+      ],
+      3: [
+        { key: 1, level: 1 },
+        { key: 20, level: 1 },
+        { key: 21, level: 1 },
+        { key: 22, level: 1 },
+        { key: 23, level: 1 },
+        { key: 24, level: 1 },
+      ],
+    } as const;
+
+    function partyBoard(
+      capacity: 1 | 2 | 3,
+      party: readonly (number | null)[],
+    ) {
+      const state = createFreshPlayerStateFromCatalog(indexes, 101);
+      state.runes = CAPACITY_RUNES[capacity].map((rune) => ({ ...rune }));
+      state.party = [...party] as typeof state.party;
+      return renderDiscordHeroWorkspace(
+        "123",
+        "party",
+        { revision: 41, state },
+        indexes,
+      ).toJSON();
+    }
+
+    const slotTargets = (board: unknown) =>
+      collectSelectMenus(board)
+        .map((menu) => decodeDiscordHeroCustomId(menu.customId))
+        .filter((id) => id.view === "party" && id.action === "select")
+        .map((id) => id.value);
+
+    expect(slotTargets(partyBoard(1, [101, null, null]))).toEqual(["s-1"]);
+    expect(slotTargets(partyBoard(2, [101, null, null]))).toEqual([
+      "s-1",
+      "s-2",
+    ]);
+    // Slot 3 stays silent until slot 2 is filled: offering it would leave a hole.
+    expect(slotTargets(partyBoard(3, [101, null, null]))).toEqual([
+      "s-1",
+      "s-2",
+    ]);
+    expect(slotTargets(partyBoard(3, [101, 201, null]))).toEqual([
+      "s-1",
+      "s-2",
+      "s-3",
+    ]);
+
+    const board = partyBoard(2, [101, null, null]);
+    const body = collectTextDisplayContents(board).join("\n");
+    expect(body).toContain("Formation 2/3");
+    expect(body).toContain("Slot 1: Knight · Occupied");
+    expect(body).toContain("Slot 2: Empty (unlocked)");
+    expect(body).toContain("Slot 3: Locked");
+    expect(body).not.toContain("Slot 1: 101");
+
+    const menus = collectSelectMenus(board).filter((menu) =>
+      menu.customId.includes(":party:select:"),
+    );
+    expect(
+      menus.map((menu) => menu.options.map((option) => option.value)),
+    ).toEqual([
+      ["101", "201", "301"],
+      ["201", "301"],
+    ]);
+    for (const menu of menus) {
+      expect(decodeDiscordHeroCustomId(menu.customId)).toMatchObject({
+        ownerId: "123",
+        revision: 41,
+      });
+    }
+    const ids = collectCustomIds(board);
+    expect(new Set(ids).size).toBe(ids.length);
+    assertDiscordComponentBounds(board);
   });
 });

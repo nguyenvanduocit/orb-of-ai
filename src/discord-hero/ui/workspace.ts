@@ -110,6 +110,11 @@ import {
 } from "./custom-id";
 import { discordHeroHeroes } from "./heroes";
 import {
+  encodeDiscordHeroPartySlot,
+  projectDiscordHeroParty,
+  type DiscordHeroPartySlotProjection,
+} from "./party";
+import {
   projectDiscordHeroHome,
   type DiscordHeroHomeAlert,
   type DiscordHeroHomeHero,
@@ -1624,6 +1629,48 @@ function alchemyActionRows(
   return rows;
 }
 
+/**
+ * One menu per slot the player can actually act on. A locked slot and a later
+ * empty slot both project zero options, so neither reaches the board — the
+ * emitted controls and the legal moves are the same list.
+ */
+function partyActionRows(
+  ownerId: string,
+  snapshot: PlayerSnapshot,
+  indexes: DiscordHeroCatalogIndexes,
+): ActionRowBuilder<MessageActionRowComponentBuilder>[] {
+  const party = projectDiscordHeroParty(indexes, snapshot.state);
+  const actionable = party.slots.filter(
+    (slot: DiscordHeroPartySlotProjection) => slot.options.length > 0,
+  );
+  return actionable.map((slot) =>
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(
+          encodeDiscordHeroCustomId({
+            ownerId,
+            view: "party",
+            action: "select",
+            revision: snapshot.revision,
+            value: encodeDiscordHeroPartySlot(slot.slot),
+          }),
+        )
+        .setPlaceholder(
+          slot.status === "occupied"
+            ? `Slot ${slot.slot}: ${slot.heroName} — deploy someone else`
+            : `Slot ${slot.slot}: deploy a hero`,
+        )
+        .addOptions(
+          slot.options.map((option) =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(option.label)
+              .setValue(option.value),
+          ),
+        ),
+    ),
+  );
+}
+
 function heroActionRow(
   ownerId: string,
   snapshot: PlayerSnapshot,
@@ -3024,7 +3071,9 @@ function homeBody(
     ...home.party.map((slot) =>
       slot.status === "empty"
         ? `- Slot ${slot.slot}: Empty`
-        : `- Slot ${slot.slot}: ${slot.hero.name} (#${slot.hero.heroKey}) · ${homeProgressionLine(slot.hero.progression)}`,
+        : slot.status === "locked"
+          ? `- Slot ${slot.slot}: Locked`
+          : `- Slot ${slot.slot}: ${slot.hero.name} (#${slot.hero.heroKey}) · ${homeProgressionLine(slot.hero.progression)}`,
     ),
     "",
     `**Inventory:** ${home.inventory.occupiedSlots}/${home.inventory.unlockedSlots} occupied · ${home.inventory.freeSlots} free`,
@@ -3475,15 +3524,22 @@ function bodyForView(
         `Owned: ${state.heroes.map((hero) => `${hero.heroKey} (Lv${hero.level})`).join(", ")}`,
         "Catalog: 6 exact source heroes.",
       ].join("\n");
-    case "party":
+    case "party": {
+      const party = projectDiscordHeroParty(indexes, state);
       return [
         "## ⚔️ Party",
-        state.party
-          .map((key, index) => `Slot ${index + 1}: ${key ?? "Empty"}`)
-          .join("\n"),
+        `Formation ${party.capacity}/3`,
+        ...party.slots.map((slot) =>
+          slot.status === "occupied"
+            ? `Slot ${slot.slot}: ${slot.heroName} · Occupied`
+            : slot.status === "empty"
+              ? `Slot ${slot.slot}: Empty (unlocked)`
+              : `Slot ${slot.slot}: Locked`,
+        ),
         "",
-        "Formation mutations remain oracle-gated until source slot/target semantics are proven.",
+        "Slots 2 and 3 are unlocked by the arrangement Runes. Formation changes are blocked while a stage is running; the source's 60-second cooldown remains oracle-gated.",
       ].join("\n");
+    }
     case "world":
       if (location.stageKey !== undefined) {
         const stage = indexes.tables.stages.groups.get(location.stageKey)?.[0];
@@ -3881,6 +3937,12 @@ export function renderDiscordHeroWorkspace(
         activeContainerPage,
       ),
     );
+  }
+  if (view === "party") {
+    container.addSeparatorComponents(divider());
+    for (const row of partyActionRows(ownerId, snapshot, indexes)) {
+      container.addActionRowComponents(row);
+    }
   }
   if (view === "heroes") {
     container
