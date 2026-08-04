@@ -11,6 +11,8 @@ import {
   DiscordHeroIdempotencyConflictError,
   DiscordHeroRepository,
   DiscordHeroRevisionConflictError,
+  type PlayerTransaction,
+  type PlayerTransactionResult,
 } from "../state/repository";
 import { arrangeDiscordHeroParty } from "./arrange-party";
 
@@ -283,20 +285,21 @@ describe("arrange DiscordHero party transaction", () => {
     const store = repository();
     let mutations = 0;
     const spy = {
-      transactPlayer: <TResult>(transaction: {
-        mutate: (current: PlayerState | null) => unknown;
-      }) =>
-        store.transactPlayer({
-          ...(transaction as never),
-          mutate: (current: PlayerState | null) => {
+      transactPlayer<TResult>(
+        transaction: PlayerTransaction<TResult>,
+      ): PlayerTransactionResult<TResult> {
+        return store.transactPlayer({
+          ...transaction,
+          mutate: (current) => {
             mutations += 1;
             return transaction.mutate(current);
           },
-        } as never) as TResult,
+        });
+      },
     };
 
     expect(() =>
-      arrangeDiscordHeroParty(spy as never, indexes, {
+      arrangeDiscordHeroParty(spy, indexes, {
         userId: "123",
         interactionId: "ghost",
         expectedRevision: 1,

@@ -38,14 +38,22 @@ export interface DiscordHeroCustomId {
   ownerId: string;
   view: DiscordHeroView;
   action: DiscordHeroAction;
-  revision: number;
+  revision: number | null;
   value?: string;
 }
 
 const VIEW_SET = new Set<string>(DISCORD_HERO_VIEWS);
 const ACTION_SET = new Set<string>(DISCORD_HERO_ACTIONS);
 
-function encodeRevision(revision: number): string {
+/**
+ * A control offered before any player row exists carries no revision. The
+ * token ends in an underscore because every bare word is legal base-36 —
+ * "new" alone would decode as revision 30344.
+ */
+const PRE_PLAYER_REVISION = "new_";
+
+function encodeRevision(revision: number | null): string {
+  if (revision === null) return PRE_PLAYER_REVISION;
   if (!Number.isSafeInteger(revision) || revision < 1) {
     throw new Error(
       "DiscordHero custom ID revision must be a positive safe integer",
@@ -54,7 +62,8 @@ function encodeRevision(revision: number): string {
   return revision.toString(36);
 }
 
-function decodeRevision(encoded: string): number {
+function decodeRevision(encoded: string): number | null {
+  if (encoded === PRE_PLAYER_REVISION) return null;
   if (!/^[0-9a-z]+$/.test(encoded)) {
     throw new Error("DiscordHero custom ID has an invalid revision");
   }

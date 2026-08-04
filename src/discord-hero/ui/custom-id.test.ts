@@ -34,6 +34,58 @@ describe("DiscordHero custom IDs", () => {
     expect(decodeDiscordHeroCustomId(encoded)).toEqual(value);
   });
 
+  test("round-trips the pre-player revision as exactly new_", () => {
+    const value = {
+      ownerId: "123",
+      view: "party" as const,
+      action: "select" as const,
+      revision: null,
+      value: "starter",
+    };
+    const encoded = encodeDiscordHeroCustomId(value);
+
+    expect(encoded).toBe("discordhero:123:party:select:new_:starter");
+    expect(decodeDiscordHeroCustomId(encoded)).toEqual(value);
+  });
+
+  test("keeps the pre-player token out of the base-36 revision space", () => {
+    // Every bare word is legal base-36, so a sentinel without the trailing
+    // underscore would collide with a revision a real player can reach.
+    for (const [encoded, revision] of [
+      ["new", 30_344],
+      ["none", 1_105_034],
+      ["null", 1_112_745],
+    ] as const) {
+      expect(
+        decodeDiscordHeroCustomId(`discordhero:123:party:select:${encoded}`)
+          .revision,
+      ).toBe(revision);
+    }
+
+    for (const encoded of ["NEW_", "New_", "new__", "_new", "0", "01"]) {
+      expect(() =>
+        decodeDiscordHeroCustomId(`discordhero:123:party:select:${encoded}`),
+      ).toThrow("revision");
+    }
+
+    for (const revision of [
+      0,
+      -1,
+      1.5,
+      Number.NaN,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      expect(() =>
+        encodeDiscordHeroCustomId({
+          ownerId: "123",
+          view: "party",
+          action: "select",
+          revision,
+        }),
+      ).toThrow("revision");
+    }
+  });
+
   test("rejects stale/non-canonical and delimiter-injection inputs", () => {
     expect(() =>
       decodeDiscordHeroCustomId("discordhero:1:home:view:01"),
