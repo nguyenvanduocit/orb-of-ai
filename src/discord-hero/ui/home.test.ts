@@ -45,11 +45,15 @@ function firstStackItemKey(catalog: DiscordHeroCatalogIndexes): number {
 }
 
 function returningState(catalog: DiscordHeroCatalogIndexes): PlayerState {
-  const state = structuredClone(createFreshPlayerStateFromCatalog(catalog));
+  const state = structuredClone(
+    createFreshPlayerStateFromCatalog(catalog, 101),
+  );
   const itemKey = firstStackItemKey(catalog);
 
   state.gold = Number.MAX_SAFE_INTEGER;
-  state.party = [101, null, 301];
+  // Rune 21 buys the second formation slot, so slot 2 is empty and slot 3
+  // is still locked.
+  state.party = [101, null, null];
   state.heroes[0]!.level = 10;
   state.heroes[0]!.xp = 7;
   state.heroes[1]!.level = 20;
@@ -65,8 +69,10 @@ function returningState(catalog: DiscordHeroCatalogIndexes): PlayerState {
   state.runes = [
     { key: 1, level: 1 },
     { key: 10, level: 1 },
+    { key: 20, level: 1 },
     { key: 11, level: 1 },
     { key: 11001, level: 1 },
+    { key: 21, level: 1 },
   ];
   state.offline = {
     accrualCursorMs: Number.MAX_SAFE_INTEGER,
@@ -99,7 +105,9 @@ function returningState(catalog: DiscordHeroCatalogIndexes): PlayerState {
 }
 
 function maximumCatalogState(catalog: DiscordHeroCatalogIndexes): PlayerState {
-  const state = structuredClone(createFreshPlayerStateFromCatalog(catalog));
+  const state = structuredClone(
+    createFreshPlayerStateFromCatalog(catalog, 101),
+  );
   const itemKey = firstStackItemKey(catalog);
   const sourceHeroes = catalog.tables.heroes.rows;
 
@@ -187,7 +195,7 @@ describe("DiscordHero Home projection", () => {
   test("projects a fresh save from exact snapshot and source-backed catalog facts", () => {
     const snapshot: PlayerSnapshot = {
       revision: 1,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
 
     expect(projectDiscordHeroHome(snapshot, indexes)).toEqual({
@@ -256,42 +264,10 @@ describe("DiscordHero Home projection", () => {
             },
           },
         },
-        {
-          slot: 2,
-          status: "occupied",
-          hero: {
-            heroKey: 201,
-            name: "Ranger",
-            classType: "Ranger",
-            progression: {
-              status: "progressing",
-              level: 1,
-              experience: 0,
-              nextLevel: 2,
-              experienceForLevelUp: 30,
-              experienceRemaining: 30,
-              progressPercent: 0,
-            },
-          },
-        },
-        {
-          slot: 3,
-          status: "occupied",
-          hero: {
-            heroKey: 301,
-            name: "Sorcerer",
-            classType: "Sorcerer",
-            progression: {
-              status: "progressing",
-              level: 1,
-              experience: 0,
-              nextLevel: 2,
-              experienceForLevelUp: 30,
-              experienceRemaining: 30,
-              progressPercent: 0,
-            },
-          },
-        },
+        // A fresh player owns all three heroes but has bought no arrangement
+        // Rune, so only the chosen starter is deployed.
+        { slot: 2, status: "locked", hero: null },
+        { slot: 3, status: "locked", hero: null },
       ],
       inventory: { occupiedSlots: 0, unlockedSlots: 20, freeSlots: 20 },
       campaign: {
@@ -378,6 +354,16 @@ describe("DiscordHero Home projection", () => {
       status: "empty",
       hero: null,
     });
+    expect(home.party[2]).toEqual({
+      slot: 3,
+      status: "locked",
+      hero: null,
+    });
+    // Only the unlocked-but-empty slot is worth nagging about; a slot the
+    // player has not bought yet is not a chore.
+    expect(
+      home.alerts.filter((alert) => alert.kind === "empty-party-slots"),
+    ).toEqual([{ kind: "empty-party-slots", slots: [2] }]);
     expect(home.inventory).toEqual({
       occupiedSlots: 20,
       unlockedSlots: 20,
@@ -499,7 +485,7 @@ describe("DiscordHero Home projection", () => {
   test("returns fresh deeply frozen data without state or catalog aliases", () => {
     const snapshot: PlayerSnapshot = {
       revision: 1,
-      state: createFreshPlayerStateFromCatalog(indexes),
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
     };
     const first = projectDiscordHeroHome(snapshot, indexes);
     const second = projectDiscordHeroHome(snapshot, indexes);
@@ -539,7 +525,7 @@ describe("DiscordHero Home projection", () => {
   });
 
   test("fails closed on malformed snapshots and missing highest-stage progress", () => {
-    const fresh = createFreshPlayerStateFromCatalog(indexes);
+    const fresh = createFreshPlayerStateFromCatalog(indexes, 101);
     expect(() =>
       projectDiscordHeroHome(
         { revision: 0, state: fresh } as PlayerSnapshot,

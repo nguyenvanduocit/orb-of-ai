@@ -6,6 +6,7 @@ import {
 import { stageEncounter } from "../domain/campaign";
 import { quoteCubeRecipeUnlock } from "../domain/cube-unlocks";
 import { validatePlayerAgainstCatalog } from "../domain/invariants";
+import { deriveDiscordHeroFormationCapacity } from "../domain/party";
 import { resolveOfflineRuneState } from "../domain/offline";
 import {
   createLevelCurve,
@@ -25,6 +26,11 @@ export type DiscordHeroHomePartySlot =
   | {
       readonly slot: number;
       readonly status: "empty";
+      readonly hero: null;
+    }
+  | {
+      readonly slot: number;
+      readonly status: "locked";
       readonly hero: null;
     }
   | {
@@ -191,10 +197,13 @@ export function projectDiscordHeroHome(
   }
   const heroModels = new Map(heroes.map((hero) => [hero.heroKey, hero]));
 
+  const capacity = deriveDiscordHeroFormationCapacity(indexes, state.runes);
   const party = state.party.map((heroKey, index): DiscordHeroHomePartySlot => {
     const slot = index + 1;
     if (heroKey === null) {
-      return { slot, status: "empty", hero: null };
+      return slot <= capacity
+        ? { slot, status: "empty", hero: null }
+        : { slot, status: "locked", hero: null };
     }
     const hero = heroModels.get(heroKey);
     if (hero === undefined) {
