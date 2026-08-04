@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { decodeDiscordHeroAlchemyOutcome } from "./alchemy";
 import { decodeDiscordHeroAllocateAttributePointOutcome } from "./allocate-attribute-point";
+import { decodeDiscordHeroArrangePartyOutcome } from "./arrange-party";
 import { decodeDiscordHeroEquipGearOutcome } from "./equip-gear";
 import { decodeDiscordHeroSelectStarterOutcome } from "./select-starter";
 import { decodeDiscordHeroUnequipGearOutcome } from "./unequip-gear";
@@ -27,6 +28,35 @@ const decoderCases: readonly DecoderCase[] = [
     ],
     numericField: "starterHeroKey",
     wrongShape: { kind: "selected", starterHeroKey: 401 },
+  },
+  {
+    name: "arrange party",
+    decode: decodeDiscordHeroArrangePartyOutcome,
+    valid: [
+      {
+        kind: "arranged",
+        transition: "fill",
+        targetSlot: 2,
+        selectedHeroKey: 201,
+        previousHeroKey: null,
+        sourceSlot: null,
+      },
+      {
+        kind: "arranged",
+        transition: "swap",
+        targetSlot: 1,
+        selectedHeroKey: 201,
+        previousHeroKey: 101,
+        sourceSlot: 2,
+      },
+      { kind: "unchanged" },
+      { kind: "slot-locked", capacity: 2 },
+      { kind: "hero-not-owned" },
+      { kind: "stage-active" },
+      { kind: "invalid-target" },
+    ],
+    numericField: "selectedHeroKey",
+    wrongShape: { kind: "slot-locked", capacity: 4 },
   },
   {
     name: "unlock container slot",
