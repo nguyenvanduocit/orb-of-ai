@@ -52,8 +52,9 @@ src/discord-hero/
     transaction.ts
   use-cases/
     open-workspace.ts
+    select-starter.ts
+    arrange-party.ts
     heroes.ts
-    party.ts
     campaign.ts
     inventory.ts
     runes.ts
@@ -67,6 +68,7 @@ src/discord-hero/
     custom-id.ts
     workspace.ts
     home.ts
+    starter.ts
     heroes.ts
     party.ts
     world.ts
@@ -415,6 +417,29 @@ The catalog supplies first-available heroes 101, 201 and 301 through
 ([`heroes.md:25`](../preferences/taskbarhero/database/heroes.md#L25),
 [`currencies.md:25`](../preferences/taskbarhero/database/currencies.md#L25)).
 Every additional new-save field requires a runtime-oracle fixture.
+
+Creation is a player decision, not a side effect of looking. Opening the
+workspace is a read-only query returning either a snapshot or the three starter
+candidates ([`use-cases/open-workspace.ts`](../src/discord-hero/use-cases/open-workspace.ts)),
+and only `select-starter` writes: one transaction, expected revision `null`,
+committing heroes `[101,201,301]` with party `[selected,null,null]`
+([`use-cases/select-starter.ts`](../src/discord-hero/use-cases/select-starter.ts)).
+The control that offers this choice exists before any revision does, so custom
+IDs carry a nullable revision encoded as `new_`; the trailing underscore keeps
+the token out of the base-36 revision space, where a bare `new` would mean
+revision 30344.
+
+Formation capacity is derived on every read, never persisted: base `1` plus
+each owned Rune contributing `UnlockArrangeSlotCount`
+([`domain/party.ts`](../src/discord-hero/domain/party.ts)). Fill, replace and
+swap are one pure transition, wrapped by a transaction bound to both the target
+slot and the selected hero
+([`use-cases/arrange-party.ts`](../src/discord-hero/use-cases/arrange-party.ts)).
+The board emits exactly the legal moves — one menu per actionable slot, none
+for a locked slot or one whose filling would leave a hole
+([`ui/party.ts`](../src/discord-hero/ui/party.ts)) — and each move runs against
+the revision encoded in the clicked control, so a board drawn before a change
+cannot act on state it never showed.
 
 There is no automatic import, conversion, reset, deletion, or compatibility
 read from:
