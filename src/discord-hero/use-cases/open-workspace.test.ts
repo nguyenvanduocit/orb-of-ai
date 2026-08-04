@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { Database } from "bun:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildCatalogIndexes } from "../catalog/indexes";
 import { loadDiscordHeroCatalog } from "../catalog/loader";
+import { createFreshPlayerStateFromCatalog } from "../domain/invariants";
 import {
   DiscordHeroRepository,
   type PlayerTransaction,
@@ -26,6 +28,54 @@ function repository(): DiscordHeroRepository {
   return store;
 }
 
+function seedPlayer(store: DiscordHeroRepository, userId: string): void {
+  store.transactPlayer({
+    scope: "test",
+    interactionId: `seed-${userId}`,
+    operation: "seed",
+    requestSha256: "a".repeat(64),
+    userId,
+    expectedRevision: null,
+    decodeOutcome: () => ({ kind: "seeded" }) as const,
+    nowMs: 1,
+    mutate: () => ({
+      kind: "commit",
+      state: createFreshPlayerStateFromCatalog(indexes, 201),
+      outcome: { kind: "seeded" },
+    }),
+  });
+}
+
+function projection(store: DiscordHeroRepository): {
+  players: number;
+  idempotency: number;
+  integrity: string;
+} {
+  const database = new Database(store.databasePath, {
+    readonly: true,
+    strict: true,
+  });
+  try {
+    const count = (table: string) =>
+      (
+        database.query(`SELECT COUNT(*) AS count FROM ${table}`).get() as {
+          count: number;
+        }
+      ).count;
+    return {
+      players: count("players"),
+      idempotency: count("idempotency"),
+      integrity: (
+        database.query("PRAGMA integrity_check").get() as {
+          integrity_check: string;
+        }
+      ).integrity_check,
+    };
+  } finally {
+    database.close();
+  }
+}
+
 afterEach(() => {
   for (const store of openRepositories.splice(0)) store.close();
   for (const directory of temporaryDirectories.splice(0)) {
@@ -34,75 +84,88 @@ afterEach(() => {
 });
 
 describe("open DiscordHero workspace", () => {
-  test("creates the exact source-backed player once and reopens it unchanged", () => {
+  test("asks a missing player to choose a starter without writing anything", () => {
     const store = repository();
-    const created = openDiscordHeroWorkspace(store, indexes, {
-      userId: "123",
-      interactionId: "open-1",
-      nowMs: 1_000,
-    });
-    const reopened = openDiscordHeroWorkspace(store, indexes, {
-      userId: "123",
-      interactionId: "open-2",
-      nowMs: 2_000,
-    });
-    const repeatedInteraction = openDiscordHeroWorkspace(store, indexes, {
-      userId: "123",
-      interactionId: "open-1",
-      nowMs: 3_000,
-    });
-
-    expect(created.created).toBe(true);
-    expect(created.revision).toBe(1);
-    expect(created.state.gold).toBe(100);
-    expect(created.state.party).toEqual([101, 201, 301]);
-    expect(reopened).toEqual({
-      created: false,
-      revision: 1,
-      state: created.state,
-    });
-    expect(repeatedInteraction).toEqual(reopened);
-  });
-
-  test("retries one create race and returns the winning state", () => {
-    const store = repository();
-    let injected = false;
-    const racingStore = {
+    let transactions = 0;
+    const queryOnly = {
       getPlayer: store.getPlayer.bind(store),
-      transactPlayer<TResult>(
-        transaction: PlayerTransaction<TResult>,
-      ): PlayerTransactionResult<TResult> {
-        if (!injected) {
-          injected = true;
-          store.transactPlayer({
-            ...transaction,
-            interactionId: "other-interaction",
-          });
-        }
-        return store.transactPlayer(transaction);
+      transactPlayer<TResult>(): PlayerTransactionResult<TResult> {
+        transactions += 1;
+        throw new Error("open must not transact");
       },
     };
 
-    const opened = openDiscordHeroWorkspace(racingStore, indexes, {
-      userId: "456",
-      interactionId: "open-race",
-      nowMs: 3_000,
+    const result = openDiscordHeroWorkspace(queryOnly, indexes, {
+      userId: "123",
     });
 
-    expect(opened.created).toBe(false);
-    expect(opened.revision).toBe(1);
-    expect(opened.state.party).toEqual([101, 201, 301]);
+    expect(result).toEqual({
+      status: "starter-required",
+      candidates: [
+        { heroKey: 101, name: "Knight", classType: "Knight" },
+        { heroKey: 201, name: "Ranger", classType: "Ranger" },
+        { heroKey: 301, name: "Sorcerer", classType: "Sorcerer" },
+      ],
+    });
+    expect(transactions).toBe(0);
+    expect(store.getPlayer("123")).toBeNull();
+
+    // Repeating the query must stay just as inert.
+    openDiscordHeroWorkspace(queryOnly, indexes, { userId: "123" });
+    expect(transactions).toBe(0);
+    expect(projection(store)).toEqual({
+      players: 0,
+      idempotency: 0,
+      integrity: "ok",
+    });
   });
 
-  test("rejects malformed Discord and clock inputs before persistence", () => {
+  test("returns a detached snapshot of an existing player without writing", () => {
     const store = repository();
+    seedPlayer(store, "123");
+    const before = projection(store);
+
+    const result = openDiscordHeroWorkspace(store, indexes, { userId: "123" });
+    if (result.status !== "ready") {
+      throw new Error("expected a ready workspace");
+    }
+    expect(result.snapshot.revision).toBe(1);
+    expect(result.snapshot.state.party).toEqual([201, null, null]);
+    expect(result.snapshot.state.heroes.map((hero) => hero.heroKey)).toEqual([
+      101, 201, 301,
+    ]);
+    expect(result.snapshot.state.gold).toBe(100);
+
+    result.snapshot.state.gold = 999_999;
+    expect(store.getPlayer("123")?.state.gold).toBe(100);
+    expect(projection(store)).toEqual(before);
+  });
+
+  test("rejects malformed Discord input before repository access", () => {
+    const store = repository();
+    let reads = 0;
+    const countingStore = {
+      getPlayer(userId: string) {
+        reads += 1;
+        return store.getPlayer(userId);
+      },
+      transactPlayer<TResult>(
+        _transaction: PlayerTransaction<TResult>,
+      ): PlayerTransactionResult<TResult> {
+        throw new Error("open must not transact");
+      },
+    };
+
     expect(() =>
-      openDiscordHeroWorkspace(store, indexes, {
+      openDiscordHeroWorkspace(countingStore, indexes, {
         userId: "not-a-snowflake",
-        interactionId: "open",
-        nowMs: 1,
       }),
     ).toThrow("snowflake");
-    expect(store.getPlayer("123")).toBeNull();
+    expect(reads).toBe(0);
+    expect(projection(store)).toEqual({
+      players: 0,
+      idempotency: 0,
+      integrity: "ok",
+    });
   });
 });

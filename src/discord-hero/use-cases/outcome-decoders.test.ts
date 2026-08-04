@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 import { decodeDiscordHeroAlchemyOutcome } from "./alchemy";
 import { decodeDiscordHeroAllocateAttributePointOutcome } from "./allocate-attribute-point";
 import { decodeDiscordHeroEquipGearOutcome } from "./equip-gear";
-import { decodeDiscordHeroOpenWorkspaceOutcome } from "./open-workspace";
 import { decodeDiscordHeroUnequipGearOutcome } from "./unequip-gear";
 import { decodeDiscordHeroUnlockContainerSlotOutcome } from "./unlock-container-slot";
 import { decodeDiscordHeroUnlockCubeRecipeOutcome } from "./unlock-cube-recipe";
@@ -17,12 +16,6 @@ interface DecoderCase {
 }
 
 const decoderCases: readonly DecoderCase[] = [
-  {
-    name: "open workspace",
-    decode: decodeDiscordHeroOpenWorkspaceOutcome,
-    valid: [{ created: true }],
-    wrongShape: { created: false },
-  },
   {
     name: "unlock container slot",
     decode: decodeDiscordHeroUnlockContainerSlotOutcome,

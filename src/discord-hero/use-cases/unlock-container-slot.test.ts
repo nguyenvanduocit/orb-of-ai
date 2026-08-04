@@ -9,7 +9,7 @@ import {
   DiscordHeroRepository,
   DiscordHeroRevisionConflictError,
 } from "../state/repository";
-import { openDiscordHeroWorkspace } from "./open-workspace";
+import { createFreshPlayerStateFromCatalog } from "../domain/invariants";
 import { unlockDiscordHeroContainerSlot } from "./unlock-container-slot";
 
 const indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
@@ -28,10 +28,20 @@ function repository(): DiscordHeroRepository {
 }
 
 function createPlayer(store: DiscordHeroRepository, userId = "123"): void {
-  openDiscordHeroWorkspace(store, indexes, {
+  store.transactPlayer({
+    scope: "test",
+    interactionId: `seed-${userId}`,
+    operation: "seed",
+    requestSha256: "a".repeat(64),
     userId,
-    interactionId: `open-${userId}`,
+    expectedRevision: null,
+    decodeOutcome: () => ({ kind: "seeded" }) as const,
     nowMs: 1_000,
+    mutate: () => ({
+      kind: "commit",
+      state: createFreshPlayerStateFromCatalog(indexes, 101),
+      outcome: { kind: "seeded" },
+    }),
   });
 }
 
