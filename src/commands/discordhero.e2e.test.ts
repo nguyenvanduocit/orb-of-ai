@@ -217,7 +217,7 @@ async function closeScenario(s: Awaited<ReturnType<typeof scenario>>) {
 }
 
 describe("DiscordHero Phase 5 emitted-control journeys", () => {
-  test("journey 1: fresh slash -> Home -> Heroes -> emitted hero option", async () => {
+  test("journey 1: fresh slash -> starter board -> chosen starter -> Home -> Heroes", async () => {
     const s = await scenario();
     try {
       const first = slash("123", "j1-slash");
@@ -228,10 +228,63 @@ describe("DiscordHero Phase 5 emitted-control journeys", () => {
       ]);
       expect(first.events[0]!.payload).toMatchObject({ flags: 64 });
       assertBoard(first.events[1]!.payload);
+
+      // Opening the workspace must not bring a player into existence.
+      expect(s.runtime.repository.getPlayer("123")).toBeNull();
+      const emptyDatabase = rows(s.databasePath);
+
+      const starterMenu = pickMenu(
+        first.events[1]!.payload,
+        "party",
+        "select",
+        "starter",
+      );
+      expect(
+        decodeDiscordHeroCustomId(starterMenu.customId).revision,
+      ).toBeNull();
+      expect(starterMenu.options.map((option) => option.value)).toEqual([
+        "101",
+        "201",
+        "301",
+      ]);
+
+      // A second look changes nothing.
+      const again = slash("123", "j1-slash-again");
+      await execute(again.interaction, s.provider, () => 1000);
+      expect(rows(s.databasePath)).toBe(emptyDatabase);
+
+      const chosen = select(
+        starterMenu.customId,
+        ["201"],
+        "123",
+        "j1-starter",
+        starterMenu.options,
+      );
+      await handleSelect(chosen.interaction, s.provider, () => 1000);
+      assertBoard(chosen.updates[0]);
+      expect(s.runtime.repository.getPlayer("123")?.revision).toBe(1);
+      expect(s.runtime.repository.getPlayer("123")?.state.party).toEqual([
+        201,
+        null,
+        null,
+      ]);
+
+      // Duplicate delivery of the same interaction replays without a second
+      // revision.
+      const replay = select(
+        starterMenu.customId,
+        ["201"],
+        "123",
+        "j1-starter",
+        starterMenu.options,
+      );
+      await handleSelect(replay.interaction, s.provider, () => 1000);
+      expect(s.runtime.repository.getPlayer("123")?.revision).toBe(1);
+
       const before = rows(s.databasePath);
 
       const heroes = button(
-        pickButton(first.events[1]!.payload, "heroes", "view"),
+        pickButton(chosen.updates[0], "heroes", "view"),
         "123",
         "j1-heroes",
       );
@@ -253,10 +306,152 @@ describe("DiscordHero Phase 5 emitted-control journeys", () => {
     }
   });
 
+  test("journey 1b: formation replace, then a bought slot, all through emitted controls", async () => {
+    const s = await scenario();
+    try {
+      const opened = slash("123", "j1b-slash");
+      await execute(opened.interaction, s.provider, () => 1000);
+      const starterMenu = pickMenu(
+        opened.events[1]!.payload,
+        "party",
+        "select",
+        "starter",
+      );
+      const chosen = select(
+        starterMenu.customId,
+        ["101"],
+        "123",
+        "j1b-starter",
+        starterMenu.options,
+      );
+      await handleSelect(chosen.interaction, s.provider, () => 1000);
+
+      const party = button(
+        pickButton(chosen.updates[0], "party", "view"),
+        "123",
+        "j1b-party",
+      );
+      await handleButton(party.interaction, s.provider, () => 1000);
+      assertBoard(party.updates[0]);
+
+      // At capacity one only slot 1 is actionable.
+      const slotMenus = controls(party.updates[0]).menus.filter((menu) =>
+        menu.customId.includes(":party:select:"),
+      );
+      expect(
+        slotMenus.map((menu) => decodeDiscordHeroCustomId(menu.customId).value),
+      ).toEqual(["s-1"]);
+
+      const replace = select(
+        slotMenus[0]!.customId,
+        ["301"],
+        "123",
+        "j1b-replace",
+        slotMenus[0]!.options,
+      );
+      await handleSelect(replace.interaction, s.provider, () => 1000);
+      assertBoard(replace.updates[0]);
+      expect(s.runtime.repository.getPlayer("123")?.state.party).toEqual([
+        301,
+        null,
+        null,
+      ]);
+      expect(s.runtime.repository.getPlayer("123")?.revision).toBe(2);
+
+      // A stale control from the pre-replace board must not move state.
+      const stale = select(
+        slotMenus[0]!.customId,
+        ["201"],
+        "123",
+        "j1b-stale",
+        slotMenus[0]!.options,
+      );
+      await handleSelect(stale.interaction, s.provider, () => 1000);
+      expect(s.runtime.repository.getPlayer("123")?.state.party).toEqual([
+        301,
+        null,
+        null,
+      ]);
+
+      // Buy the second formation slot the way the game does, then confirm the
+      // board opens exactly one more menu.
+      const current = s.runtime.repository.getPlayer("123")!;
+      s.runtime.repository.transactPlayer({
+        scope: "j1b",
+        interactionId: "j1b-rune",
+        operation: "seed-rune",
+        requestSha256: "b".repeat(64),
+        userId: "123",
+        expectedRevision: current.revision,
+        decodeOutcome: (value) => value as { kind: "seeded" },
+        nowMs: 1000,
+        mutate: (state) => {
+          const next = structuredClone(state!);
+          next.runes = [
+            { key: 1, level: 1 },
+            { key: 20, level: 1 },
+            { key: 21, level: 1 },
+          ];
+          return { kind: "commit", state: next, outcome: { kind: "seeded" } };
+        },
+      });
+
+      const widened = slash("123", "j1b-reopen");
+      await execute(widened.interaction, s.provider, () => 1000);
+      const partyAgain = button(
+        pickButton(widened.events[1]!.payload, "party", "view"),
+        "123",
+        "j1b-party-2",
+      );
+      await handleButton(partyAgain.interaction, s.provider, () => 1000);
+      const widenedMenus = controls(partyAgain.updates[0]).menus.filter(
+        (menu) => menu.customId.includes(":party:select:"),
+      );
+      expect(
+        widenedMenus.map(
+          (menu) => decodeDiscordHeroCustomId(menu.customId).value,
+        ),
+      ).toEqual(["s-1", "s-2"]);
+      // The empty slot may only take a hero who is not already deployed.
+      expect(widenedMenus[1]!.options.map((option) => option.value)).toEqual([
+        "101",
+        "201",
+      ]);
+
+      const fill = select(
+        widenedMenus[1]!.customId,
+        ["201"],
+        "123",
+        "j1b-fill",
+        widenedMenus[1]!.options,
+      );
+      await handleSelect(fill.interaction, s.provider, () => 1000);
+      expect(s.runtime.repository.getPlayer("123")?.state.party).toEqual([
+        301,
+        201,
+        null,
+      ]);
+
+      // Another player's control is refused before anything is read or written.
+      const before = rows(s.databasePath);
+      const foreign = select(
+        widenedMenus[0]!.customId,
+        ["101"],
+        "456",
+        "j1b-foreign",
+        widenedMenus[0]!.options,
+      );
+      await handleSelect(foreign.interaction, s.provider, () => 1000);
+      expect(rows(s.databasePath)).toBe(before);
+    } finally {
+      await closeScenario(s);
+    }
+  });
+
   test("journey 2: existing save -> Inventory -> emitted item -> emitted equip choice", async () => {
     const s = await scenario();
     try {
-      const seed = createFreshPlayerStateFromCatalog(s.runtime.indexes);
+      const seed = createFreshPlayerStateFromCatalog(s.runtime.indexes, 101);
       seed.containers.inventory.slots.push({
         index: 0,
         asset: {
@@ -333,7 +528,7 @@ describe("DiscordHero Phase 5 emitted-control journeys", () => {
   test("journey 3: slash -> World -> emitted page/stage, stale/foreign/forged controls are safe", async () => {
     const s = await scenario();
     try {
-      const seed = createFreshPlayerStateFromCatalog(s.runtime.indexes);
+      const seed = createFreshPlayerStateFromCatalog(s.runtime.indexes, 101);
       seed.containers.inventory.slots.push({
         index: 0,
         asset: {
@@ -483,7 +678,7 @@ describe("DiscordHero Phase 5 emitted-control journeys", () => {
         encodeDiscordHeroEquipmentPage,
         encodeDiscordHeroEquipmentSelection,
       } = await import("../discord-hero/ui/inventory");
-      const seed = createFreshPlayerStateFromCatalog(s.runtime.indexes);
+      const seed = createFreshPlayerStateFromCatalog(s.runtime.indexes, 101);
       const rolledStats = [...s.runtime.indexes.tables.stat_mods.groups]
         .sort(([left], [right]) => left - right)
         .map(([statModKey, rows]) => ({
