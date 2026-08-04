@@ -69,6 +69,15 @@ async function createProjectCopy(): Promise<string> {
     join(PROJECT_ROOT, "preferences/taskbarhero/manifest.json"),
     join(taskbarHeroRoot, "manifest.json"),
   );
+  // Refresh extracts monster details and Stage Box drop keys from Markdown, so
+  // a project copy that omits those pages is not a project a refresh can run in.
+  for (const relative of ["stage-boxes.md", "items", "monsters"]) {
+    await cp(
+      join(PROJECT_ROOT, "preferences/taskbarhero", relative),
+      join(taskbarHeroRoot, relative),
+      { recursive: true },
+    );
+  }
   await cp(RAW_DATA_ROOT, join(taskbarHeroRoot, "raw-data"), {
     recursive: true,
   });

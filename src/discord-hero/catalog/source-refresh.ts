@@ -410,6 +410,204 @@ async function extractMonsterDetails(
   }
 }
 
+const STAGE_BOX_INVENTORY_ROW =
+  /^\| \[([^\]]+)\]\((items\/[^)]+\.md)\) \| ([^|]+?) \| ([1-9]\d*) \|$/gm;
+
+const STAGE_BOX_ITEM_KEYS = [
+  "affix",
+  "gear",
+  "grade",
+  "icon",
+  "id",
+  "level",
+  "name",
+  "slug",
+  "type",
+];
+
+const STAGE_BOX_DETAIL_KEYS = [
+  "desc",
+  "dropKey",
+  "stats",
+  "synthType",
+  "uniqueMod",
+];
+
+const STAGE_BOX_KIND_PREFIXES = [
+  ["Normal Monster Box", "NORMAL"],
+  ["Stage Boss Box", "STAGE_BOSS"],
+  ["Act Boss Box", "ACT_BOSS"],
+] as const;
+
+function readStageBoxAppendix(
+  markdown: string,
+  dataset: string,
+  label: string,
+): string {
+  const heading = "### `" + dataset + "`";
+  const headingIndex = markdown.indexOf(heading);
+  if (headingIndex === -1) {
+    fail(`${label} has no ${dataset} appendix`);
+  }
+  if (markdown.indexOf(heading, headingIndex + 1) !== -1) {
+    fail(`${label} has more than one ${dataset} appendix`);
+  }
+  const match = markdown
+    .slice(headingIndex)
+    .match(/```json\r?\n([\s\S]*?)\r?\n```/);
+  if (match === null) {
+    fail(`${label} has no ${dataset} appendix body`);
+  }
+  return match[1]!;
+}
+
+/**
+ * Captures the DropKey each Stage Box rolls from. DropKey is read from the
+ * source record and never computed: 18 retired boxes keep their own item id
+ * while pointing at a surviving box's table, so any arithmetic rule is wrong
+ * for those 18.
+ */
+async function extractStageBoxDropKeys(
+  projectRoot: string,
+  stagedDirectory: string,
+): Promise<void> {
+  const taskbarHeroRoot = join(projectRoot, "preferences/taskbarhero");
+  const inventoryMarkdown = await readFile(
+    join(taskbarHeroRoot, "stage-boxes.md"),
+    "utf8",
+  );
+  const inventory = [
+    ...inventoryMarkdown.matchAll(STAGE_BOX_INVENTORY_ROW),
+  ].map((match) => ({
+    itemId: Number(match[4]),
+    sourcePath: match[2]!,
+    slug: match[3]!.trim(),
+  }));
+  if (inventory.length !== 59) {
+    fail(`expected 59 Stage Box inventory rows, received ${inventory.length}`);
+  }
+  for (const [label, read] of [
+    ["item ID", (row: (typeof inventory)[number]) => String(row.itemId)],
+    ["slug", (row: (typeof inventory)[number]) => row.slug],
+    ["source path", (row: (typeof inventory)[number]) => row.sourcePath],
+  ] as const) {
+    if (new Set(inventory.map(read)).size !== inventory.length) {
+      fail(`Stage Box inventory repeats a ${label}`);
+    }
+  }
+
+  const rawItems = JSON.parse(
+    await readFile(join(stagedDirectory, "datasets", "items.json"), "utf8"),
+  ) as { id: number; slug: string; type: string }[];
+  const rawItemsById = new Map(rawItems.map((row) => [row.id, row]));
+
+  const mappings = [];
+  for (const row of inventory) {
+    if (!/^items\/[A-Za-z0-9._-]+\.md$/.test(row.sourcePath)) {
+      fail(`Stage Box page ${row.sourcePath} is not a plain items child`);
+    }
+    const markdown = await readFile(
+      join(taskbarHeroRoot, row.sourcePath),
+      "utf8",
+    );
+    const itemBytes = readStageBoxAppendix(
+      markdown,
+      "/data/items.json",
+      row.sourcePath,
+    );
+    const detailBytes = readStageBoxAppendix(
+      markdown,
+      "/data/items_detail.json",
+      row.sourcePath,
+    );
+
+    let item: Record<string, unknown>;
+    let detail: Record<string, unknown>;
+    try {
+      item = JSON.parse(itemBytes) as Record<string, unknown>;
+      detail = JSON.parse(detailBytes) as Record<string, unknown>;
+    } catch (error) {
+      fail(`${row.sourcePath} appendix is invalid JSON: ${String(error)}`);
+    }
+
+    // 41 pages carry the nine base keys; the 18 retired boxes add `deleted`.
+    const itemKeys = Object.keys(item).filter((key) => key !== "deleted");
+    if (
+      itemKeys.length !== STAGE_BOX_ITEM_KEYS.length ||
+      itemKeys.some((key, index) => key !== STAGE_BOX_ITEM_KEYS[index])
+    ) {
+      fail(`${row.sourcePath} item record has unexpected keys`);
+    }
+    if ("deleted" in item && typeof item.deleted !== "boolean") {
+      fail(`${row.sourcePath} item record has a non-boolean deleted flag`);
+    }
+    const detailKeys = Object.keys(detail);
+    if (
+      detailKeys.length !== STAGE_BOX_DETAIL_KEYS.length ||
+      detailKeys.some((key, index) => key !== STAGE_BOX_DETAIL_KEYS[index])
+    ) {
+      fail(`${row.sourcePath} detail record has unexpected keys`);
+    }
+
+    const name = (item.name as Record<string, unknown> | null)?.["en-US"];
+    if (typeof name !== "string" || name.length === 0) {
+      fail(`${row.sourcePath} has no en-US item name`);
+    }
+    if (item.id !== row.itemId || item.slug !== row.slug) {
+      fail(`${row.sourcePath} disagrees with the inventory row`);
+    }
+    if (item.type !== "STAGEBOX") {
+      fail(`${row.sourcePath} is not a STAGEBOX item`);
+    }
+    const rawItem = rawItemsById.get(row.itemId);
+    if (
+      rawItem === undefined ||
+      rawItem.slug !== row.slug ||
+      rawItem.type !== "STAGEBOX"
+    ) {
+      fail(`${row.sourcePath} does not match the staged items dataset`);
+    }
+    const dropKey = detail.dropKey;
+    if (
+      typeof dropKey !== "number" ||
+      !Number.isSafeInteger(dropKey) ||
+      dropKey < 1
+    ) {
+      fail(`${row.sourcePath} has an invalid dropKey`);
+    }
+    const kind = STAGE_BOX_KIND_PREFIXES.find(([prefix]) =>
+      name.startsWith(prefix),
+    );
+    if (kind === undefined) {
+      fail(`${row.sourcePath} has an unclassified box name ${name}`);
+    }
+
+    mappings.push({
+      boxKind: kind[1],
+      itemId: row.itemId,
+      dropKey,
+      sourcePath: row.sourcePath,
+      itemRecordSha256: sha256(JSON.stringify(item)),
+      detailRecordSha256: sha256(JSON.stringify(detail)),
+    });
+  }
+
+  const artifact = {
+    format: "discordhero-stage-box-drop-keys/v1" as const,
+    inventoryAggregateSha256: sha256(JSON.stringify(inventory)),
+    mappings: mappings.toSorted((left, right) => left.itemId - right.itemId),
+  };
+  const bytes = `${JSON.stringify(artifact, null, 2)}\n`;
+  if (Buffer.byteLength(bytes) > 64 * 1024) {
+    fail("Stage Box aggregate exceeds its 64 KiB bound");
+  }
+  await writeFile(
+    join(stagedDirectory, "stage-box-drop-keys.json"),
+    bytes,
+    "utf8",
+  );
+}
+
 async function downloadRawSource(
   projectRoot: string,
   stagedDirectory: string,
@@ -458,6 +656,7 @@ async function downloadRawSource(
   }
 
   await extractMonsterDetails(projectRoot, stagedDirectory);
+  await extractStageBoxDropKeys(projectRoot, stagedDirectory);
   const sourceLock = await createDiscordHeroSourceLock(
     projectRoot,
     stagedDirectory,

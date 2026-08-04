@@ -177,6 +177,26 @@ export type SourceLockMonsterDetail = DeepReadonly<{
   sha256: string;
 }>;
 
+export type StageBoxKind = "NORMAL" | "STAGE_BOSS" | "ACT_BOSS";
+
+export type StageBoxDropKeyMapping = DeepReadonly<{
+  boxKind: StageBoxKind;
+  itemId: number;
+  dropKey: number;
+  sourcePath: string;
+  itemRecordSha256: string;
+  detailRecordSha256: string;
+}>;
+
+export type SourceLockStageBoxDropKeys = DeepReadonly<{
+  path: "stage-box-drop-keys.json";
+  count: number;
+  distinctDropKeyCount: number;
+  inventoryAggregateSha256: string;
+  mappingAggregateSha256: string;
+  sha256: string;
+}>;
+
 export type DiscordHeroSourceLock = DeepReadonly<{
   format: "discordhero-source-lock/v1";
   manifestSha256: string;
@@ -191,6 +211,9 @@ export type DiscordHeroSourceLock = DeepReadonly<{
     aggregateSha256: string;
     files: SourceLockMonsterDetail[];
   };
+  // Absent in the reviewed v1 generation, which stays a recovery authority;
+  // required in every staged or published v2 generation.
+  stageBoxDropKeys?: SourceLockStageBoxDropKeys;
 }>;
 
 export type DiscordHeroDataset = DeepReadonly<{
@@ -239,6 +262,16 @@ export type DiscordHeroCatalog = DeepReadonly<{
       };
       enrichments: MonsterAttackEnrichment[];
     };
+    stageBoxDropKeys?: {
+      provenance: {
+        sourceCount: number;
+        distinctDropKeyCount: number;
+        inventoryAggregateSha256: string;
+        sourceAggregateSha256: string;
+        sourceArtifactSha256: string;
+      };
+      mappings: StageBoxDropKeyMapping[];
+    };
   };
 }>;
 
@@ -252,10 +285,132 @@ interface InspectedRawSource {
   sourceLockBytes: string;
   rowsByName: Map<string, JsonObject[]>;
   detailByMonsterKey: Map<number, { record: JsonObject; sha256: string }>;
+  stageBoxMappings: StageBoxDropKeyMapping[] | null;
 }
 
 function fail(message: string): never {
   throw new Error(`DiscordHero catalog: ${message}`);
+}
+
+const STAGE_BOX_ARTIFACT_PATH = "stage-box-drop-keys.json";
+const STAGE_BOX_KINDS = new Set<string>(["NORMAL", "STAGE_BOSS", "ACT_BOSS"]);
+
+/**
+ * Reads the Stage Box aggregate a refresh extracted, and proves it still
+ * describes the raw items beside it. A generation without the artifact is the
+ * reviewed v1, which stays valid as a recovery authority.
+ */
+async function inspectStageBoxDropKeys(
+  rawDataRoot: string,
+  rowsByName: Map<string, JsonObject[]>,
+): Promise<{
+  field: SourceLockStageBoxDropKeys;
+  mappings: StageBoxDropKeyMapping[];
+} | null> {
+  const artifactPath = join(rawDataRoot, STAGE_BOX_ARTIFACT_PATH);
+  let bytes: string;
+  try {
+    bytes = await readFile(artifactPath, "utf8");
+  } catch {
+    return null;
+  }
+
+  let artifact: unknown;
+  try {
+    artifact = JSON.parse(bytes);
+  } catch (error) {
+    fail(`${STAGE_BOX_ARTIFACT_PATH} is invalid JSON: ${String(error)}`);
+  }
+  requireCondition(
+    isRecord(artifact) &&
+      artifact.format === "discordhero-stage-box-drop-keys/v1" &&
+      typeof artifact.inventoryAggregateSha256 === "string" &&
+      Array.isArray(artifact.mappings),
+    `${STAGE_BOX_ARTIFACT_PATH} is not a Stage Box aggregate`,
+  );
+  const record = artifact as {
+    inventoryAggregateSha256: string;
+    mappings: unknown[];
+  };
+  requireCondition(
+    Object.keys(record).length === 3,
+    `${STAGE_BOX_ARTIFACT_PATH} carries unexpected top-level keys`,
+  );
+
+  const itemRows = rowsByName.get("items");
+  requireCondition(
+    itemRows !== undefined,
+    "raw items dataset is missing for Stage Box validation",
+  );
+  const stageBoxItemIds = new Set(
+    itemRows!
+      .filter((row) => row.type === "STAGEBOX")
+      .map((row) => row.id as number),
+  );
+
+  const seenItemIds = new Set<number>();
+  const mappings: StageBoxDropKeyMapping[] = [];
+  for (const [index, entry] of record.mappings.entries()) {
+    requireCondition(
+      isRecord(entry) && Object.keys(entry).length === 6,
+      `${STAGE_BOX_ARTIFACT_PATH} mapping ${index} has unexpected keys`,
+    );
+    const mapping = entry as unknown as StageBoxDropKeyMapping;
+    requireCondition(
+      STAGE_BOX_KINDS.has(mapping.boxKind) &&
+        Number.isSafeInteger(mapping.itemId) &&
+        mapping.itemId > 0 &&
+        Number.isSafeInteger(mapping.dropKey) &&
+        mapping.dropKey > 0 &&
+        typeof mapping.sourcePath === "string" &&
+        /^items\/[A-Za-z0-9._-]+\.md$/.test(mapping.sourcePath) &&
+        /^[0-9a-f]{64}$/.test(mapping.itemRecordSha256) &&
+        /^[0-9a-f]{64}$/.test(mapping.detailRecordSha256),
+      `${STAGE_BOX_ARTIFACT_PATH} mapping ${index} is malformed`,
+    );
+    requireCondition(
+      !seenItemIds.has(mapping.itemId),
+      `${STAGE_BOX_ARTIFACT_PATH} repeats item ${mapping.itemId}`,
+    );
+    requireCondition(
+      index === 0 ||
+        mapping.itemId >
+          (record.mappings[index - 1] as StageBoxDropKeyMapping).itemId,
+      `${STAGE_BOX_ARTIFACT_PATH} is not sorted by item id`,
+    );
+    requireCondition(
+      stageBoxItemIds.has(mapping.itemId),
+      `${STAGE_BOX_ARTIFACT_PATH} names item ${mapping.itemId}, which is not a raw STAGEBOX`,
+    );
+    seenItemIds.add(mapping.itemId);
+    mappings.push(mapping);
+  }
+
+  // Bidirectional: every raw STAGEBOX is mapped, and nothing else is.
+  requireCondition(
+    seenItemIds.size === stageBoxItemIds.size,
+    `${STAGE_BOX_ARTIFACT_PATH} covers ${seenItemIds.size} of ${stageBoxItemIds.size} raw STAGEBOX items`,
+  );
+
+  const dropKeys = rowsByName.get("drops");
+  requireCondition(dropKeys !== undefined, "raw drops dataset is missing");
+  const knownDropKeys = new Set(dropKeys!.map((row) => row.DropKey as number));
+  for (const mapping of mappings) {
+    requireCondition(
+      knownDropKeys.has(mapping.dropKey),
+      `${STAGE_BOX_ARTIFACT_PATH} names unknown DropKey ${mapping.dropKey}`,
+    );
+  }
+
+  const field: SourceLockStageBoxDropKeys = {
+    path: STAGE_BOX_ARTIFACT_PATH,
+    count: mappings.length,
+    distinctDropKeyCount: new Set(mappings.map((row) => row.dropKey)).size,
+    inventoryAggregateSha256: record.inventoryAggregateSha256,
+    mappingAggregateSha256: sha256(JSON.stringify(mappings)),
+    sha256: sha256(bytes),
+  };
+  return { field, mappings };
 }
 
 function requireCondition(
@@ -641,6 +796,9 @@ async function inspectRawSource(
     "monster detail appendices do not cover all raw monsters",
   );
 
+  const stageBox = await inspectStageBoxDropKeys(rawDataRoot, rowsByName);
+  const stageBoxDropKeys = stageBox === null ? null : stageBox.field;
+
   const sourceLock: DiscordHeroSourceLock = {
     format: "discordhero-source-lock/v1",
     manifestSha256: SOURCE_MANIFEST_SHA256,
@@ -655,6 +813,7 @@ async function inspectRawSource(
       aggregateSha256: computeMonsterDetailAggregate(detailFiles),
       files: detailFiles,
     },
+    ...(stageBoxDropKeys === null ? {} : { stageBoxDropKeys }),
   };
   const sourceLockBytes = serializeSourceLock(sourceLock);
   return {
@@ -663,6 +822,7 @@ async function inspectRawSource(
     sourceLockBytes,
     rowsByName,
     detailByMonsterKey,
+    stageBoxMappings: stageBox === null ? null : stageBox.mappings,
   };
 }
 
@@ -894,6 +1054,26 @@ export async function compileDiscordHeroCatalog(
         },
         enrichments,
       },
+      ...(inspected.stageBoxMappings === null ||
+      inspected.sourceLock.stageBoxDropKeys === undefined
+        ? {}
+        : {
+            stageBoxDropKeys: {
+              provenance: {
+                sourceCount: inspected.sourceLock.stageBoxDropKeys.count,
+                distinctDropKeyCount:
+                  inspected.sourceLock.stageBoxDropKeys.distinctDropKeyCount,
+                inventoryAggregateSha256:
+                  inspected.sourceLock.stageBoxDropKeys
+                    .inventoryAggregateSha256,
+                sourceAggregateSha256:
+                  inspected.sourceLock.stageBoxDropKeys.mappingAggregateSha256,
+                sourceArtifactSha256:
+                  inspected.sourceLock.stageBoxDropKeys.sha256,
+              },
+              mappings: inspected.stageBoxMappings,
+            },
+          }),
     },
   };
   const catalog: DiscordHeroCatalog = {

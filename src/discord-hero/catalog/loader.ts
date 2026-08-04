@@ -8,6 +8,7 @@ import {
   type JsonObject,
   type MonsterAttackEnrichment,
   sha256,
+  type StageBoxDropKeyMapping,
   validateDiscordHeroCatalog,
 } from "./compiler";
 
@@ -21,6 +22,7 @@ export type { DeepReadonly } from "./compiler";
 export type LoadedDiscordHeroCatalog = DeepReadonly<DiscordHeroCatalog>;
 export type LoadedDiscordHeroDataset = DeepReadonly<DiscordHeroDataset>;
 export type LoadedJsonObject = DeepReadonly<JsonObject>;
+export type LoadedStageBoxDropKeyMapping = DeepReadonly<StageBoxDropKeyMapping>;
 export type LoadedMonsterAttackEnrichment =
   DeepReadonly<MonsterAttackEnrichment>;
 
@@ -118,6 +120,32 @@ export function datasetRowToRecord(
     );
   }
   return row;
+}
+
+/**
+ * The DropKey a Stage Box rolls from. 59 records is small enough that a linear
+ * scan is the whole implementation; an index here would be a cache to keep
+ * correct for no measurable gain.
+ */
+export function getStageBoxDropKeyMapping(
+  catalog: LoadedDiscordHeroCatalog,
+  itemId: number,
+): LoadedStageBoxDropKeyMapping {
+  const semantic = catalog.semantic.stageBoxDropKeys;
+  if (semantic === undefined) {
+    throw new Error(
+      "DiscordHero catalog: this catalog carries no Stage Box drop keys",
+    );
+  }
+  const mapping = semantic.mappings.find(
+    (candidate) => candidate.itemId === itemId,
+  );
+  if (mapping === undefined) {
+    throw new Error(
+      `DiscordHero catalog: no Stage Box drop key for item ${itemId}`,
+    );
+  }
+  return mapping;
 }
 
 export function getMonsterAttackEnrichment(
