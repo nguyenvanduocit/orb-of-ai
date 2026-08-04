@@ -5,6 +5,7 @@ import { z } from "zod";
 import { buildCatalogIndexes } from "../catalog/indexes";
 import { loadDiscordHeroCatalog } from "../catalog/loader";
 import { createFreshPlayerStateFromCatalog } from "../domain/invariants";
+import { deriveDiscordHeroFormationCapacity } from "../domain/party";
 import {
   openDiscordHeroRepository,
   type DiscordHeroRepository,
@@ -51,7 +52,7 @@ beforeEach(async () => {
       expect(current).toBeNull();
       return {
         kind: "commit",
-        state: createFreshPlayerStateFromCatalog(indexes),
+        state: createFreshPlayerStateFromCatalog(indexes, 101),
         outcome: { kind: "created" },
       };
     },
@@ -133,43 +134,48 @@ describe("upgrade DiscordHero rune transaction", () => {
     });
   });
 
-  test("rejects affordable formation Rune effects with a replayable explicit outcome and no state revision", () => {
+  test("commits the formation Rune once, widening capacity without touching the party", () => {
     seedRunes("seed-command", 1_000, [
       { key: 1, level: 1 },
       { key: 20, level: 1 },
     ]);
-    const before = repository.getPlayer("123");
     const first = upgradeDiscordHeroRune(repository, indexes, {
       userId: "123",
-      interactionId: "unsupported-command",
+      interactionId: "command",
       expectedRevision: 2,
       runeKey: 21,
       nowMs: 3,
     });
     const replay = upgradeDiscordHeroRune(repository, indexes, {
       userId: "123",
-      interactionId: "unsupported-command",
+      interactionId: "command",
       expectedRevision: 2,
       runeKey: 21,
       nowMs: 99,
     });
 
     expect(first).toEqual(replay);
-    expect(first).toEqual({
-      status: "rejected",
-      revision: 2,
+    expect(first).toMatchObject({
+      status: "committed",
+      revision: 3,
       outcome: {
-        kind: "unsupported-effect",
+        kind: "upgraded",
         runeKey: 21,
-        name: "Rune of Command",
-        currentLevel: 0,
-        nextLevel: 1,
+        level: 1,
         cost: 1_000,
-        statType: "UnlockArrangeSlotCount",
-        value: 1,
+        gold: 0,
       },
     });
-    expect(repository.getPlayer("123")).toEqual(before);
+
+    const stored = repository.getPlayer("123");
+    expect(stored?.revision).toBe(3);
+    expect(stored?.state.runes.filter((rune) => rune.key === 21)).toEqual([
+      { key: 21, level: 1 },
+    ]);
+    expect(stored?.state.party).toEqual([101, null, null]);
+    expect(
+      deriveDiscordHeroFormationCapacity(indexes, stored!.state.runes),
+    ).toBe(2);
   });
 
   test("rejects affordable Skill-slot Rune effects without debit or state revision", () => {

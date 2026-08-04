@@ -190,7 +190,8 @@ export function quoteRuneUpgrade(
   const level = levelRows[nextLevel - 1]!;
   if (
     level.STATTYPE !== "CubeAlchemyGoldPercent" &&
-    level.STATTYPE !== "CubeExpPercent"
+    level.STATTYPE !== "CubeExpPercent" &&
+    level.STATTYPE !== "UnlockArrangeSlotCount"
   ) {
     return Object.freeze({
       kind: "unsupported-effect",

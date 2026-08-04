@@ -6,6 +6,7 @@ import {
 } from "../catalog/indexes";
 import { loadDiscordHeroCatalog } from "../catalog/loader";
 import { createFreshPlayerStateFromCatalog } from "./invariants";
+import { deriveDiscordHeroFormationCapacity } from "./party";
 import type { PlayerState } from "./player";
 import { resolveRuneLevelRows } from "./rune-levels";
 import { quoteRuneUpgrade, upgradeRune } from "./runes";
@@ -15,7 +16,7 @@ let fresh: PlayerState;
 
 beforeAll(async () => {
   indexes = buildCatalogIndexes(await loadDiscordHeroCatalog());
-  fresh = createFreshPlayerStateFromCatalog(indexes);
+  fresh = createFreshPlayerStateFromCatalog(indexes, 101);
 });
 
 function withRuneLevelStatType(
@@ -243,30 +244,111 @@ describe("DiscordHero source rune upgrades", () => {
     expect(state.runes.at(-1)).toEqual({ key: 203, level: 1 });
   });
 
-  test("returns frozen unsupported-effect quotes for affordable formation and Skill-slot Runes without mutation", () => {
+  test("sells the first arrangement Rune for its exact source cost and widens the formation", () => {
     const command = structuredClone(fresh);
     command.gold = 1_000;
-    command.runes.push({ key: 1, level: 1 }, { key: 20, level: 1 });
+    command.runes = [
+      { key: 1, level: 1 },
+      { key: 20, level: 1 },
+    ];
     const commandBefore = structuredClone(command);
-    const commandQuote = quoteRuneUpgrade(indexes, command, 21);
+    expect(deriveDiscordHeroFormationCapacity(indexes, command.runes)).toBe(1);
 
+    const commandQuote = quoteRuneUpgrade(indexes, command, 21);
     expect(commandQuote).toEqual({
-      kind: "unsupported-effect",
+      kind: "available",
       runeKey: 21,
       name: "Rune of Command",
       currentLevel: 0,
       nextLevel: 1,
       cost: 1_000,
+      canAfford: true,
       statType: "UnlockArrangeSlotCount",
       value: 1,
     });
     expect(Object.isFrozen(commandQuote)).toBe(true);
-    if (commandQuote.kind !== "unsupported-effect") {
-      throw new Error("expected Rune 21 to be oracle-gated");
-    }
-    expect(upgradeRune(indexes, command, 21)).toEqual(commandQuote);
-    expect(command).toEqual(commandBefore);
 
+    const upgraded = upgradeRune(indexes, command, 21);
+    expect(upgraded).toMatchObject({
+      kind: "upgraded",
+      runeKey: 21,
+      level: 1,
+      cost: 1_000,
+      statType: "UnlockArrangeSlotCount",
+      value: 1,
+      state: {
+        gold: 0,
+        party: [101, null, null],
+        runes: [
+          { key: 1, level: 1 },
+          { key: 20, level: 1 },
+          { key: 21, level: 1 },
+        ],
+      },
+    });
+    if (upgraded.kind !== "upgraded") throw new Error("expected upgrade");
+    expect(
+      deriveDiscordHeroFormationCapacity(indexes, upgraded.state.runes),
+    ).toBe(2);
+    expect(command).toEqual(commandBefore);
+  });
+
+  test("sells the second arrangement Rune only at the end of its source path", () => {
+    const awakened = structuredClone(fresh);
+    awakened.gold = 150_000;
+    awakened.runes = [
+      { key: 1, level: 1 },
+      { key: 20, level: 1 },
+      { key: 21, level: 1 },
+      { key: 22, level: 1 },
+      { key: 23, level: 1 },
+    ];
+    const awakenedBefore = structuredClone(awakened);
+    expect(deriveDiscordHeroFormationCapacity(indexes, awakened.runes)).toBe(2);
+
+    expect(quoteRuneUpgrade(indexes, awakened, 24)).toEqual({
+      kind: "available",
+      runeKey: 24,
+      name: "Rune of Command",
+      currentLevel: 0,
+      nextLevel: 1,
+      cost: 150_000,
+      canAfford: true,
+      statType: "UnlockArrangeSlotCount",
+      value: 1,
+    });
+
+    const upgraded = upgradeRune(indexes, awakened, 24);
+    expect(upgraded).toMatchObject({
+      kind: "upgraded",
+      runeKey: 24,
+      level: 1,
+      cost: 150_000,
+      state: { gold: 0, party: [101, null, null] },
+    });
+    if (upgraded.kind !== "upgraded") throw new Error("expected upgrade");
+    expect(upgraded.state.runes.at(-1)).toEqual({ key: 24, level: 1 });
+    expect(
+      deriveDiscordHeroFormationCapacity(indexes, upgraded.state.runes),
+    ).toBe(3);
+    expect(awakened).toEqual(awakenedBefore);
+
+    const missingPath = structuredClone(fresh);
+    missingPath.gold = 150_000;
+    missingPath.runes = [
+      { key: 1, level: 1 },
+      { key: 20, level: 1 },
+      { key: 21, level: 1 },
+      { key: 22, level: 1 },
+    ];
+    expect(quoteRuneUpgrade(indexes, missingPath, 24)).toMatchObject({
+      kind: "prerequisite-locked",
+      requiredLevel: 1,
+      predecessorKeys: [23],
+    });
+  });
+
+  test("keeps the Skill-slot Rune oracle-gated and unbought", () => {
     const awakening = structuredClone(fresh);
     awakening.gold = 50_000;
     awakening.runes.push(
