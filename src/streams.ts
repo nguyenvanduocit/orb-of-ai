@@ -17,10 +17,10 @@
 // only changes coins-per-block — never which block is paid — so a streaming member is
 // never counted by both tiers. Fed raw gateway events + a scheduler tick by index.ts.
 
-import { EmbedBuilder, type Client, type Guild, type VoiceState } from "discord.js";
+import { EmbedBuilder, escapeMarkdown, type Client, type Guild, type VoiceState } from "discord.js";
 import { config } from "./config";
 import { activeMultiplier, addCoins } from "./economy";
-import { loadStreamSessions, saveStreamSessions } from "./guilds";
+import { displayNames, loadStreamSessions, saveStreamSessions } from "./guilds";
 import { forEachGuild, startTicker } from "./scheduler";
 
 // What to render for a session — cumulative totals so the live message and the
@@ -68,7 +68,8 @@ function tierFor(guild: Guild, voiceState: VoiceState): { perBlock: number; live
   return { perBlock: 0, live: false };
 }
 
-function streamEmbed(userId: string, status: StreamStatus, ongoing: boolean): EmbedBuilder {
+function streamEmbed(name: string, status: StreamStatus, ongoing: boolean): EmbedBuilder {
+  const who = `**${escapeMarkdown(name)}**`;
   const embed = new EmbedBuilder()
     .setColor(0x593695)
     .setFooter({
@@ -84,15 +85,15 @@ function streamEmbed(userId: string, status: StreamStatus, ongoing: boolean): Em
   const bonus = status.bonusApplied ? `\n⚡ **Đang có sự kiện nhân thưởng!**` : "";
   if (ongoing && status.live) {
     embed.setTitle("🎥 Đang Go Live").setDescription(
-      `<@${userId}> đang phát sóng — cứ live tiếp là coin chảy về đều bro!${bonus}`,
+      `${who} đang phát sóng — cứ live tiếp là coin chảy về đều bro!${bonus}`,
     );
   } else if (ongoing) {
     embed.setTitle("🔊 Đang cày trong voice").setDescription(
-      `<@${userId}> ngồi voice với anh em cũng có coin nhè nhẹ — Go Live để ăn rate cao hơn nha bro!${bonus}`,
+      `${who} ngồi voice với anh em cũng có coin nhè nhẹ — Go Live để ăn rate cao hơn nha bro!${bonus}`,
     );
   } else {
     embed.setTitle("👋 Buổi voice đã kết thúc").setDescription(
-      `<@${userId}> cày cuốc quá trời, chiến tiếp nha bro!` +
+      `${who} cày cuốc quá trời, chiến tiếp nha bro!` +
         (status.bonusApplied ? `\n⚡ **Đã được nhân thưởng sự kiện trong buổi!**` : ""),
     );
   }
@@ -192,34 +193,41 @@ function settleSession(guildId: string, userId: string): StreamStatus | null {
 // Fetch the voice channel's text chat and either edit the tracked message or
 // send a fresh one. Returns the delivered message id (for the caller to
 // persist), or null on any failure — best-effort, the coins are already
-// credited. Mention rides in content (embed mentions don't ping; editing a
-// message never re-pings, so keeping it on edits is harmless).
+// credited. The member is named in plain text, never mentioned — a voice
+// session is ambient, and a ping per session is noise.
 async function deliver(
-  client: Client,
+  guild: Guild,
   channelId: string,
   messageId: string | undefined,
-  content: string,
   embed: EmbedBuilder,
 ): Promise<string | null> {
-  const channel = await client.channels.fetch(channelId);
+  const channel = await guild.client.channels.fetch(channelId);
   if (!channel?.isTextBased() || channel.isDMBased()) return null;
   if (messageId) {
     const existing = await channel.messages.fetch(messageId).catch(() => null);
     if (existing) {
-      await existing.edit({ content, embeds: [embed] });
+      await existing.edit({ content: null, embeds: [embed] });
       return existing.id;
     }
     // message vanished — fall through and post a fresh one
   }
-  const sent = await channel.send({ content, embeds: [embed] });
+  const sent = await channel.send({ embeds: [embed] });
   return sent.id;
+}
+
+// Members in voice are always cached; the fetch fallback covers a settle for
+// someone who already left the server.
+async function memberName(guild: Guild, userId: string): Promise<string> {
+  return guild.members.cache.get(userId)?.displayName ?? (await displayNames(guild, [userId]))(userId);
 }
 
 // Post the live message on the first paid block, then edit that same message every
 // block after (report once, then update in place).
-async function renderLive(client: Client, guildId: string, userId: string, status: StreamStatus): Promise<void> {
+async function renderLive(guild: Guild, userId: string, status: StreamStatus): Promise<void> {
+  const guildId = guild.id;
   try {
-    const id = await deliver(client, status.channelId, status.messageId, `<@${userId}>`, streamEmbed(userId, status, true));
+    const embed = streamEmbed(await memberName(guild, userId), status, true);
+    const id = await deliver(guild, status.channelId, status.messageId, embed);
     if (id && id !== status.messageId) {
       // First post (or a re-post after the old message vanished): remember the
       // id — but only if the session still exists, since a stop edge may have
@@ -237,9 +245,10 @@ async function renderLive(client: Client, guildId: string, userId: string, statu
 
 // Finalize into the wrap-up summary — edits the live message when there is one,
 // otherwise sends a fresh summary (a session that ended before the first tick).
-async function renderFinal(client: Client, userId: string, status: StreamStatus): Promise<void> {
+async function renderFinal(guild: Guild, userId: string, status: StreamStatus): Promise<void> {
   try {
-    await deliver(client, status.channelId, status.messageId, `<@${userId}>`, streamEmbed(userId, status, false));
+    const embed = streamEmbed(await memberName(guild, userId), status, false);
+    await deliver(guild, status.channelId, status.messageId, embed);
   } catch (error) {
     console.error(`[streams] final render failed in ${status.channelId}:`, error);
   }
@@ -272,7 +281,7 @@ export async function handleVoiceStateUpdate(oldState: VoiceState, newState: Voi
     // Left voice entirely → settle + close, posting the summary to the channel the
     // session opened in.
     const result = settleSession(guildId, userId);
-    if (result) await renderFinal(newState.client, userId, result);
+    if (result) await renderFinal(newState.guild, userId, result);
     return;
   }
 
@@ -293,7 +302,7 @@ export function startStreamScheduler(client: Client): void {
         if (!voiceState?.channelId) continue; // no longer in voice — leave edge / reconcile settles it
         const { perBlock, live } = tierFor(guild, voiceState);
         const status = accrueBlocks(guild.id, userId, perBlock, live);
-        if (status) await renderLive(client, guild.id, userId, status);
+        if (status) await renderLive(guild, userId, status);
       }
     }),
   );
@@ -305,7 +314,7 @@ export function startStreamScheduler(client: Client): void {
 // minutes are lost — the safer direction). All mutations run before the first await,
 // so a queued VoiceStateUpdate can never see — and revive the old clock of — a stale
 // pre-restart record.
-export async function reconcileGuildStreams(client: Client, guild: Guild): Promise<void> {
+export async function reconcileGuildStreams(guild: Guild): Promise<void> {
   const settled: { userId: string; result: StreamStatus }[] = [];
   for (const userId of Object.keys(loadStreamSessions(guild.id))) {
     if (guild.voiceStates.cache.get(userId)?.channelId) continue; // still in voice — keep the clock
@@ -324,6 +333,6 @@ export async function reconcileGuildStreams(client: Client, guild: Guild): Promi
   if (changed) saveStreamSessions(guild.id, sessions);
 
   for (const { userId, result } of settled) {
-    await renderFinal(client, userId, result);
+    await renderFinal(guild, userId, result);
   }
 }

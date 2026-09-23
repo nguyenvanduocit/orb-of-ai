@@ -90,7 +90,7 @@ client.once(Events.ClientReady, (readyClient) => {
   (async () => {
     for (const guild of readyClient.guilds.cache.values()) {
       await syncGuild(guild).catch(console.error);
-      await reconcileGuildStreams(readyClient, guild).catch(console.error);
+      await reconcileGuildStreams(guild).catch(console.error);
       await reconcileGuildExpeditions(readyClient, guild).catch(console.error);
     }
     // GC for the shared stores — the safety net behind GuildMemberRemove, and
