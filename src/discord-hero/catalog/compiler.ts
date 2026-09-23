@@ -22,13 +22,22 @@ export const SOURCE_CATALOG_SHA256 =
 
 // These pins are intentionally updated only after a reviewed source refresh.
 export const SOURCE_LOCK_SHA256 =
-  "8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1";
+  "a481b589016e5eeb2ba52bff4b0d699249018d6985d8e97c7f0325094379992a";
+/**
+ * The generation published before Stage Box drop keys existed. It stays a
+ * reviewed recovery authority, so an already-installed source is allowed to be
+ * either generation while every staged or promoted source must be the target.
+ */
+export const INSTALLED_SOURCE_LOCK_SHA256 = [
+  SOURCE_LOCK_SHA256,
+  "8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1",
+] as const;
 export const MONSTER_DETAILS_SHA256 =
   "7211c8fcfda8a82d02f4336dffdf193ed1202c836013e4f398e10f2c67ba3a48";
 export const COMPILED_PAYLOAD_SHA256 =
-  "6d876909b7df8bac0217a15b98bb11e56c26417b4c3fc5d13d15696bc7719704";
+  "5668ecd5d7dfdd842b71efe5faa86a03a3806b3132154048750e5f73f743298f";
 export const COMPILED_FILE_SHA256 =
-  "2a046b2b0f5c1ddff451dddadf13a7b9c8d6d112b1c6455ccda59f2af9e879f2";
+  "9c784364cb8ad9bee87d66e71a6e5d6ed9d041ba2d46c33b87e8bf9e1b47f2d3";
 
 export const EXPECTED_DATASET_ROWS = {
   attribute_groups: 8,
@@ -840,7 +849,10 @@ export async function createDiscordHeroSourceLock(
 export async function validateRawSourceDirectory(
   projectRoot: string,
   rawDataRoot: string,
-  options: { requirePinnedLock?: boolean } = {},
+  options: {
+    requirePinnedLock?: boolean;
+    generation?: "installed" | "target";
+  } = {},
 ): Promise<InspectedRawSource> {
   const inspected = await inspectRawSource(projectRoot, rawDataRoot);
   const lockPath = join(rawDataRoot, "source-lock.json");
@@ -850,8 +862,12 @@ export async function validateRawSourceDirectory(
     "source-lock.json does not match the pinned manifest and raw bytes",
   );
   if (options.requirePinnedLock !== false) {
+    const accepted: readonly string[] =
+      options.generation === "installed"
+        ? INSTALLED_SOURCE_LOCK_SHA256
+        : [SOURCE_LOCK_SHA256];
     requireCondition(
-      sha256(existingLockBytes) === SOURCE_LOCK_SHA256,
+      accepted.includes(sha256(existingLockBytes)),
       "source lock SHA-256 does not match the reviewed pin",
     );
     requireCondition(

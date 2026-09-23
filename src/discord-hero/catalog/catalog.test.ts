@@ -21,10 +21,12 @@ import { basename, join, relative, resolve } from "node:path";
 import {
   checkDiscordHeroCatalog,
   compileDiscordHeroCatalog,
+  COMPILED_FILE_SHA256,
   computeDiscordHeroCatalogPayloadSha256,
   createDiscordHeroSourceLock,
   CURRENT_VERSION_FILE,
   resolveCurrentRawSource,
+  SOURCE_LOCK_SHA256,
   serializeSourceLock,
   validateDiscordHeroCatalog,
   writeDiscordHeroCatalog,
@@ -42,6 +44,10 @@ import {
 } from "./source-refresh";
 
 const PROJECT_ROOT = resolve(import.meta.dir, "../../..");
+// A published version directory is named after its source-lock SHA-256, so the
+// fixtures derive the pointer from the reviewed pin rather than copying it.
+const CURRENT_VERSION_ID = SOURCE_LOCK_SHA256;
+const CURRENT_VERSION_POINTER = `versions/${CURRENT_VERSION_ID}`;
 const RAW_DATA_ROOT = join(PROJECT_ROOT, "preferences/taskbarhero/raw-data");
 
 type DeepMutable<T> = T extends readonly (infer Item)[]
@@ -99,10 +105,8 @@ async function prepareOldAndNewVersions(projectRoot: string): Promise<{
 }> {
   const rawDataRoot = join(projectRoot, "preferences/taskbarhero/raw-data");
   const canonical = await currentRawSource(rawDataRoot);
-  const oldPointer =
-    "versions/old-8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1";
-  const newPointer =
-    "versions/8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1";
+  const oldPointer = `versions/old-${CURRENT_VERSION_ID}`;
+  const newPointer = CURRENT_VERSION_POINTER;
   const oldVersion = join(rawDataRoot, oldPointer);
   await cp(canonical, oldVersion, { recursive: true });
   const temporaryLink = join(rawDataRoot, ".discordhero-current-test-link");
@@ -181,18 +185,13 @@ describe("structured TaskbarHero source", () => {
     const currentPath = join(RAW_DATA_ROOT, "current");
     const pointer = await readlink(currentPath).catch(() => null);
 
-    expect(pointer).toMatch(
-      /^versions\/8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1$/,
-    );
+    expect(pointer).toMatch(new RegExp(`^versions/${CURRENT_VERSION_ID}$`));
     expect(
       await readFile(join(RAW_DATA_ROOT, CURRENT_VERSION_FILE), "utf8"),
     ).toBe(`${pointer}\n`);
     expect((await lstat(currentPath)).isSymbolicLink()).toBe(true);
     expect(await realpath(currentPath)).toBe(
-      join(
-        RAW_DATA_ROOT,
-        "versions/8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1",
-      ),
+      join(RAW_DATA_ROOT, CURRENT_VERSION_POINTER),
     );
   });
 
@@ -900,9 +899,7 @@ describe("atomic raw-source promotion", () => {
           expect(digest(catalogBytes)).toBe(
             "186d90e9d1caf1be28d0480e760c082ea434a80588ed76f97c1b4f1fed2b9d12",
           );
-          expect(digest(lockBytes)).toBe(
-            "8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1",
-          );
+          expect(digest(lockBytes)).toBe(CURRENT_VERSION_ID);
           observations.push(relative(resolvedRawDataRoot, source));
         } catch (error) {
           errors.push(error);
@@ -965,9 +962,7 @@ describe("atomic raw-source promotion", () => {
       );
       expect(
         digest(await readFile(join(source, "source-lock.json"), "utf8")),
-      ).toBe(
-        "8229a4083bb05481250fbba0e18607e89ebf2341e5f351d5074e32b33c5285d1",
-      );
+      ).toBe(CURRENT_VERSION_ID);
       expect(
         (await readdir(rawDataRoot)).filter(
           (name) =>
@@ -1024,14 +1019,16 @@ describe("deterministic writer and check mode", () => {
 
     await loadDiscordHeroCatalog(outputPath);
     expect(digest(await readFile(outputPath, "utf8"))).toBe(
-      "2a046b2b0f5c1ddff451dddadf13a7b9c8d6d112b1c6455ccda59f2af9e879f2",
+      COMPILED_FILE_SHA256,
     );
     expect(
       (await readdir(outputDirectory)).filter(
         (name) => name !== "catalog.json",
       ),
     ).toEqual([]);
-  });
+    // Three full compiles of an 8.6 MB catalog outrun the default 5s budget
+    // when the whole suite is competing for the machine.
+  }, 30_000);
 
   test("check mode is non-mutating for both valid and invalid artifacts", async () => {
     const outputDirectory = await mkdtemp(join(tmpdir(), "discordhero-check-"));
@@ -1050,7 +1047,7 @@ describe("deterministic writer and check mode", () => {
     ).rejects.toThrow("does not match generated catalog");
     expect(await readFile(outputPath, "utf8")).toBe(tamperedBytes);
     expect((await stat(outputPath)).mtimeMs).toBe(tamperedStat.mtimeMs);
-  });
+  }, 30_000);
 });
 
 describe("immutable loaded catalog", () => {

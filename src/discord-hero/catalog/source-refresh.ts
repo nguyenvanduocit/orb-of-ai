@@ -307,7 +307,9 @@ async function preparePromotionDestination(
   activeStage: string,
 ): Promise<string> {
   const currentSource = await resolveCurrentRawSource(destinationDirectory);
-  await validateRawSourceDirectory(projectRoot, currentSource);
+  await validateRawSourceDirectory(projectRoot, currentSource, {
+    generation: "installed",
+  });
   await reconcileCompatibilityCurrent(destinationDirectory, currentSource);
   await collectStalePromotionArtifacts(destinationDirectory, activeStage);
   return currentSource;
