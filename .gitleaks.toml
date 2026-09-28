@@ -1,5 +1,5 @@
 # Scan config for this repo. Extends gitleaks' default rules; the allowlist
-# below covers values that look like credentials but are game data or hashes.
+# below covers values that look like credentials but are hashes.
 [extend]
 useDefault = true
 
@@ -12,17 +12,5 @@ keywords = ["key", "api", "token", "secret", "client", "passwd", "password", "au
 
   [rules.allowlist]
   regexTarget = "match"
-  paths = [
-    # TaskbarHero ships this EasySave3 password inside its own binary; the save
-    # oracles need it to decrypt local .es3 files. It grants access to nothing
-    # but a save file the player already owns.
-    '''src/discord-hero/oracles/es3-envelope\.ts''',
-    '''src/discord-hero/oracles/campaign-save-delta-discovery\.test\.ts''',
-    '''src/discord-hero/oracles/pet-arrangement-capture\.test\.ts''',
-    '''scripts/discordhero-campaign-save-delta\.test\.ts''',
-    '''scripts/discordhero-pet-arrangement-oracle\.test\.ts''',
-    # Compiled source catalogs: every "key" here is a TaskbarHero content id.
-    '''assets/discordhero/.*\.json''',
-  ]
   # Content digests pinned as test constants are hashes, not credentials.
   regexes = ['''(?i)_SHA256\s*=\s*"?[0-9a-f]{64}"?''']

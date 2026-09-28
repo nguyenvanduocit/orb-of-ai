@@ -5,7 +5,8 @@ import {
   redactCampaignSaveDeltaDiscoveryError,
 } from "./campaign-save-delta-discovery";
 
-const FIXTURE_PASSWORD = "REDACTED_TASKBARHERO_ES3_PASSWORD";
+const FIXTURE_PASSWORD = "fixture-es3-password";
+process.env.TASKBARHERO_ES3_PASSWORD = FIXTURE_PASSWORD;
 const FIXTURE_SALT_AND_IV = Uint8Array.from([
   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 ]);
@@ -840,7 +841,7 @@ describe("TaskbarHero campaign save-delta discovery", () => {
     expect(input.afterEncrypted).toEqual(afterCopy);
     const diagnostic = redactCampaignSaveDeltaDiscoveryError(
       new Error(
-        "/Users/player/SaveFile_Live.es3 REDACTED_TASKBARHERO_ES3_PASSWORD plaintext-secret",
+        `/Users/player/SaveFile_Live.es3 ${FIXTURE_PASSWORD} plaintext-secret`,
       ),
     );
     expect(diagnostic).toEqual({

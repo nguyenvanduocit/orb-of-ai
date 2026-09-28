@@ -14,7 +14,8 @@ import { join, resolve } from "node:path";
 import { runDiscordHeroCampaignSaveDeltaCommand } from "./discordhero-campaign-save-delta";
 
 const temporaryDirectories: string[] = [];
-const FIXTURE_PASSWORD = "REDACTED_TASKBARHERO_ES3_PASSWORD";
+const FIXTURE_PASSWORD = "fixture-es3-password";
+process.env.TASKBARHERO_ES3_PASSWORD = FIXTURE_PASSWORD;
 const FIXTURE_SALT_AND_IV = Uint8Array.from([
   15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
 ]);
@@ -134,6 +135,7 @@ async function runCli(args: readonly string[]) {
     ],
     {
       cwd: PROJECT_ROOT,
+      env: { ...process.env, TASKBARHERO_ES3_PASSWORD: FIXTURE_PASSWORD },
       stdout: "pipe",
       stderr: "pipe",
     },

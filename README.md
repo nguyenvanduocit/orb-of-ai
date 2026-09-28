@@ -37,6 +37,17 @@ bun run register   # đăng ký slash commands với Discord
 bun run dev        # chạy dev (watch mode)
 ```
 
+### Dữ liệu TaskbarHero (DiscordHero)
+
+`preferences/taskbarhero/` và `assets/discordhero/` là dữ liệu của bên thứ ba (taskbarhero.wiki + game), nên không nằm trong repo này mà được lưu ở một release private. Bản snapshot được pin trong `taskbarhero-data.lock.json`:
+
+```bash
+bun run taskbarhero:fetch     # tải đúng snapshot đã pin (cần quyền đọc repo private qua `gh`)
+bun run taskbarhero:publish   # sau khi refresh snapshot: upload release mới + ghi lại lock
+```
+
+Nếu thiếu dữ liệu này, các test/compiler của `src/discord-hero/` sẽ fail và Docker build sẽ không chạy qua được bước catalog check. Phần còn lại của bot vẫn chạy bình thường.
+
 ## Production (Fly.io)
 
 Bot chạy trên Fly.io: app `orb-of-ai` (region `sin`, https://orb-of-ai.fly.dev), **đúng 1 machine** — gateway bot 2 instance là trả lời đúp mọi tin nhắn. Data thật nằm trên volume `orb_data` (mount `/app/data`); `data/` trong repo chỉ là snapshot cũ. Secrets quản lý qua `fly secrets` (đã import từ `.env`).

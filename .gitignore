@@ -8,9 +8,11 @@ logs/
 .DS_Store
 template/.claude/skills/orb-bot/
 
-# Snapshot rotation artifacts — only preferences/taskbarhero/ is the authority
-preferences/.taskbarhero.staging.*
-preferences/taskbarhero.previous.*
+# TaskbarHero source snapshot + its compiled catalogs — third-party data, pinned
+# in taskbarhero-data.lock.json and fetched with `bun run taskbarhero:fetch`.
+# preferences/ also holds the refresh's staging/previous rotation siblings.
+preferences/
+assets/discordhero/
 
 # Agent/tooling runtime state
 .omc/

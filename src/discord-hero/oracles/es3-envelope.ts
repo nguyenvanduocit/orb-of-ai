@@ -1,6 +1,5 @@
 import { createDecipheriv, createHash, pbkdf2Sync } from "node:crypto";
 
-const TASKBARHERO_ES3_PASSWORD = "REDACTED_TASKBARHERO_ES3_PASSWORD";
 const SAVE_ROOTS = ["PlayerSaveData", "AccountSaveData", "SystemInfo"] as const;
 const SAVE_ROOT_SET = new Set<string>(SAVE_ROOTS);
 
@@ -16,6 +15,16 @@ export class TaskbarHeroEs3EnvelopeError extends Error {
     super("TaskbarHero encrypted-save envelope processing failed.");
     this.name = "TaskbarHeroEs3EnvelopeError";
   }
+}
+
+// The EasySave3 password ships inside the TaskbarHero binary; it is read from
+// the environment so the public repo never carries it.
+function taskbarHeroEs3Password(): string {
+  const password = process.env.TASKBARHERO_ES3_PASSWORD;
+  if (!password) {
+    throw new Error("TASKBARHERO_ES3_PASSWORD is not set — add it to .env.");
+  }
+  return password;
 }
 
 export interface TaskbarHeroNormalizedSave {
@@ -193,7 +202,7 @@ function comparisonSave(
 
 export async function decodeTaskbarHeroEs3Normalized(
   input: Uint8Array | ArrayBuffer,
-  password = TASKBARHERO_ES3_PASSWORD,
+  password = taskbarHeroEs3Password(),
 ): Promise<TaskbarHeroNormalizedSave> {
   return normalizedSave(await decryptTaskbarHeroEs3Outer(input, password));
 }
@@ -327,9 +336,10 @@ export async function inspectTaskbarHeroEs3Pair(input: {
 }): Promise<TaskbarHeroEs3PairInspection> {
   const beforeEncrypted = taskbarHeroEs3Bytes(input.beforeEncrypted);
   const afterEncrypted = taskbarHeroEs3Bytes(input.afterEncrypted);
+  const password = taskbarHeroEs3Password();
   const [beforeOuter, afterOuter] = await Promise.all([
-    decryptTaskbarHeroEs3Outer(beforeEncrypted, TASKBARHERO_ES3_PASSWORD),
-    decryptTaskbarHeroEs3Outer(afterEncrypted, TASKBARHERO_ES3_PASSWORD),
+    decryptTaskbarHeroEs3Outer(beforeEncrypted, password),
+    decryptTaskbarHeroEs3Outer(afterEncrypted, password),
   ]);
   const before = comparisonSave(beforeOuter);
   const after = comparisonSave(afterOuter);

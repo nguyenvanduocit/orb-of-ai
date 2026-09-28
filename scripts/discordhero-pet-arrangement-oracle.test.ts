@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const temporaryDirectories: string[] = [];
-const PASSWORD = "REDACTED_TASKBARHERO_ES3_PASSWORD";
+const PASSWORD = "fixture-es3-password";
 const SALT_AND_IV = Uint8Array.from([
   15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
 ]);
@@ -57,6 +57,7 @@ async function runCli(args: readonly string[]) {
     ],
     {
       cwd: join(import.meta.dir, ".."),
+      env: { ...process.env, TASKBARHERO_ES3_PASSWORD: PASSWORD },
       stdout: "pipe",
       stderr: "pipe",
     },
